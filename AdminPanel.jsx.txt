@@ -1,0 +1,563 @@
+import { useState, useEffect, useCallback } from "react";
+
+// ── Configuração ──────────────────────────────────────────────
+const API_BASE = "http://localhost:8080";
+const ADMIN_TOKEN = "sua_senha_aqui"; // trocar pelo ADMIN_TOKEN real
+
+const headers = {
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${ADMIN_TOKEN}`,
+};
+
+// ── API helpers ───────────────────────────────────────────────
+const api = {
+  get: (path) => fetch(`${API_BASE}${path}`, { headers }).then((r) => r.json()),
+  post: (path, body) =>
+    fetch(`${API_BASE}${path}`, { method: "POST", headers, body: JSON.stringify(body) }).then((r) => r.json()),
+};
+
+// ── Ícones SVG ────────────────────────────────────────────────
+const Icons = {
+  Dashboard: () => (
+    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+      <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+    </svg>
+  ),
+  Donation: () => (
+    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402C1 3.754 4.385 2 7 2c1.5 0 3.5.75 5 2.5C13.5 2.75 15.5 2 17 2c2.615 0 6 1.754 6 5.191C23 11.297 17.63 16.054 12 21.593z"/>
+    </svg>
+  ),
+  Campaign: () => (
+    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path d="M3 11l19-9-9 19-2-8-8-2z"/>
+    </svg>
+  ),
+  Ranking: () => (
+    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
+    </svg>
+  ),
+  Location: () => (
+    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+    </svg>
+  ),
+  Logout: () => (
+    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/>
+    </svg>
+  ),
+};
+
+// ── Toast ─────────────────────────────────────────────────────
+function Toast({ msg, type, onClose }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 3000);
+    return () => clearTimeout(t);
+  }, [onClose]);
+
+  return (
+    <div style={{
+      position: "fixed", bottom: 24, right: 24, zIndex: 9999,
+      background: type === "ok" ? "#00c896" : "#ff4757",
+      color: "#fff", padding: "12px 20px", borderRadius: 10,
+      fontFamily: "'Courier New', monospace", fontSize: 13, fontWeight: 700,
+      boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+      animation: "slideUp 0.3s ease",
+    }}>
+      {type === "ok" ? "✓ " : "✗ "}{msg}
+    </div>
+  );
+}
+
+// ── Card ──────────────────────────────────────────────────────
+function Card({ children, style = {} }) {
+  return (
+    <div style={{
+      background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 16, padding: 24, ...style
+    }}>
+      {children}
+    </div>
+  );
+}
+
+// ── Stat Card ─────────────────────────────────────────────────
+function StatCard({ label, value, accent }) {
+  return (
+    <div style={{
+      background: "rgba(255,255,255,0.04)", border: `1px solid ${accent}33`,
+      borderRadius: 16, padding: 24, position: "relative", overflow: "hidden",
+    }}>
+      <div style={{
+        position: "absolute", top: -20, right: -20, width: 80, height: 80,
+        background: `${accent}22`, borderRadius: "50%",
+      }}/>
+      <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontFamily: "'Courier New', monospace", marginBottom: 8 }}>
+        {label}
+      </div>
+      <div style={{ color: accent, fontSize: 32, fontWeight: 900, fontFamily: "'Courier New', monospace" }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+// ── Input ─────────────────────────────────────────────────────
+function Input({ label, ...props }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <label style={{ display: "block", color: "rgba(255,255,255,0.5)", fontSize: 11,
+        fontFamily: "'Courier New', monospace", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>
+        {label}
+      </label>
+      <input {...props} style={{
+        width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+        borderRadius: 8, padding: "10px 14px", color: "#fff", fontSize: 14,
+        fontFamily: "'Courier New', monospace", outline: "none", boxSizing: "border-box",
+        transition: "border-color 0.2s",
+        ...(props.style || {})
+      }}/>
+    </div>
+  );
+}
+
+// ── Button ────────────────────────────────────────────────────
+function Button({ children, onClick, accent = "#00c896", loading, style = {} }) {
+  return (
+    <button onClick={onClick} disabled={loading} style={{
+      background: accent, border: "none", borderRadius: 8, padding: "11px 22px",
+      color: "#0a0a0a", fontWeight: 900, fontSize: 13, fontFamily: "'Courier New', monospace",
+      cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1,
+      transition: "transform 0.1s, opacity 0.2s", letterSpacing: 0.5,
+      ...style
+    }}>
+      {loading ? "..." : children}
+    </button>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// TELAS
+// ══════════════════════════════════════════════════════════════
+
+// ── Dashboard ─────────────────────────────────────────────────
+function Dashboard() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get("/admin/relatorio").then(setData).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <Loader />;
+
+  return (
+    <div>
+      <h2 style={{ color: "#fff", fontFamily: "'Courier New', monospace", marginBottom: 24, fontSize: 20 }}>
+        RELATÓRIO GERAL
+      </h2>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 32 }}>
+        <StatCard label="Total de Pontos" value={data?.total_pontos ?? 0} accent="#00c896" />
+        <StatCard label="Campanhas Ativas" value={data?.campanhas_ativas ?? 0} accent="#ffd32a" />
+        <StatCard label="Top Doadores" value={data?.top_doadores?.length ?? 0} accent="#ff6b81" />
+      </div>
+
+      <Card>
+        <h3 style={{ color: "rgba(255,255,255,0.6)", fontFamily: "'Courier New', monospace",
+          fontSize: 12, marginBottom: 16, textTransform: "uppercase", letterSpacing: 1 }}>
+          TOP DOADORES
+        </h3>
+        {data?.top_doadores?.length === 0 && (
+          <p style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Courier New', monospace", fontSize: 13 }}>
+            Nenhum doador registrado ainda.
+          </p>
+        )}
+        {data?.top_doadores?.map((d, i) => (
+          <div key={i} style={{
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.06)"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ color: "#ffd32a", fontFamily: "'Courier New', monospace", fontWeight: 900, width: 24 }}>
+                #{d.rank}
+              </span>
+              <span style={{ color: "#fff", fontFamily: "'Courier New', monospace", fontSize: 14 }}>{d.nome}</span>
+            </div>
+            <span style={{ color: "#00c896", fontFamily: "'Courier New', monospace", fontWeight: 700 }}>
+              {d.pontos} pts
+            </span>
+          </div>
+        ))}
+      </Card>
+
+      <p style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, fontFamily: "'Courier New', monospace", marginTop: 16 }}>
+        Gerado em: {data?.gerado_em}
+      </p>
+    </div>
+  );
+}
+
+// ── Registrar Doação ──────────────────────────────────────────
+function RegistrarDoacao({ onToast }) {
+  const [form, setForm] = useState({ phone_id: "", tipo: "fisica", valor_brl: "", campanha_id: 0 });
+  const [loading, setLoading] = useState(false);
+
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const submit = async () => {
+    if (!form.phone_id || !form.valor_brl) return onToast("Preencha todos os campos!", "err");
+    setLoading(true);
+    try {
+      const res = await api.post("/admin/doacao", {
+        ...form, valor_brl: parseFloat(form.valor_brl), campanha_id: parseInt(form.campanha_id),
+      });
+      if (res.sucesso) {
+        onToast(`Doação registrada! +${res.pontos_ganhos} pts`, "ok");
+        setForm({ phone_id: "", tipo: "fisica", valor_brl: "", campanha_id: 0 });
+      } else {
+        onToast(res.erro || "Erro ao registrar", "err");
+      }
+    } catch {
+      onToast("Erro de conexão com a API", "err");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <h2 style={{ color: "#fff", fontFamily: "'Courier New', monospace", marginBottom: 24, fontSize: 20 }}>
+        REGISTRAR DOAÇÃO
+      </h2>
+      <Card style={{ maxWidth: 480 }}>
+        <Input label="Telefone do Doador (ex: 5511999998888)" value={form.phone_id} onChange={set("phone_id")} placeholder="5511999998888"/>
+        <Input label="Valor em R$" type="number" value={form.valor_brl} onChange={set("valor_brl")} placeholder="50.00"/>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: "block", color: "rgba(255,255,255,0.5)", fontSize: 11,
+            fontFamily: "'Courier New', monospace", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>
+            TIPO
+          </label>
+          <select value={form.tipo} onChange={set("tipo")} style={{
+            width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 8, padding: "10px 14px", color: "#fff", fontSize: 14,
+            fontFamily: "'Courier New', monospace", outline: "none",
+          }}>
+            <option value="fisica">🧺 Doação Física (+50 pts)</option>
+            <option value="online">💻 Doação Online (+100 pts)</option>
+          </select>
+        </div>
+
+        <Input label="ID da Campanha (opcional)" type="number" value={form.campanha_id} onChange={set("campanha_id")} placeholder="0"/>
+
+        <Button onClick={submit} loading={loading} style={{ width: "100%", marginTop: 8 }}>
+          REGISTRAR DOAÇÃO
+        </Button>
+      </Card>
+    </div>
+  );
+}
+
+// ── Campanhas ─────────────────────────────────────────────────
+function Campanhas({ onToast }) {
+  const [campanhas, setCampanhas] = useState([]);
+  const [form, setForm] = useState({ nome: "", slug: "", descricao: "", urgente: false });
+  const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
+
+  useEffect(() => {
+    api.get("/admin/campanhas")
+      .then((r) => setCampanhas(r.campanhas || []))
+      .finally(() => setLoadingData(false));
+  }, []);
+
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value }));
+
+  const criar = async () => {
+    if (!form.nome || !form.slug) return onToast("Nome e slug são obrigatórios!", "err");
+    setLoading(true);
+    try {
+      const res = await api.post("/admin/campanhas", form);
+      if (res.sucesso) {
+        onToast(res.mensagem, "ok");
+        setForm({ nome: "", slug: "", descricao: "", urgente: false });
+        const updated = await api.get("/admin/campanhas");
+        setCampanhas(updated.campanhas || []);
+      } else {
+        onToast(res.erro || "Erro ao criar", "err");
+      }
+    } catch {
+      onToast("Erro de conexão", "err");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <h2 style={{ color: "#fff", fontFamily: "'Courier New', monospace", marginBottom: 24, fontSize: 20 }}>
+        CAMPANHAS
+      </h2>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+        <Card>
+          <h3 style={{ color: "rgba(255,255,255,0.5)", fontFamily: "'Courier New', monospace",
+            fontSize: 12, marginBottom: 16, textTransform: "uppercase", letterSpacing: 1 }}>
+            NOVA CAMPANHA
+          </h3>
+          <Input label="Nome" value={form.nome} onChange={set("nome")} placeholder="Fome Zero"/>
+          <Input label="Slug" value={form.slug} onChange={set("slug")} placeholder="fome_zero"/>
+          <Input label="Descrição" value={form.descricao} onChange={set("descricao")} placeholder="Alimentos não-perecíveis"/>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+            <input type="checkbox" id="urgente" checked={form.urgente} onChange={set("urgente")}/>
+            <label htmlFor="urgente" style={{ color: "#ff6b81", fontFamily: "'Courier New', monospace", fontSize: 13 }}>
+              🚨 Marcar como URGENTE
+            </label>
+          </div>
+
+          <Button onClick={criar} loading={loading} accent="#ffd32a" style={{ width: "100%" }}>
+            CRIAR CAMPANHA
+          </Button>
+        </Card>
+
+        <Card>
+          <h3 style={{ color: "rgba(255,255,255,0.5)", fontFamily: "'Courier New', monospace",
+            fontSize: 12, marginBottom: 16, textTransform: "uppercase", letterSpacing: 1 }}>
+            CAMPANHAS ATIVAS ({campanhas.length})
+          </h3>
+          {loadingData && <Loader small />}
+          {!loadingData && campanhas.length === 0 && (
+            <p style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Courier New', monospace", fontSize: 13 }}>
+              Nenhuma campanha ativa.
+            </p>
+          )}
+          {campanhas.map((c) => (
+            <div key={c.id} style={{
+              padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.06)"
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#fff", fontFamily: "'Courier New', monospace", fontSize: 14 }}>
+                  {c.nome}
+                </span>
+                {c.urgente && (
+                  <span style={{ background: "#ff4757", color: "#fff", fontSize: 10,
+                    padding: "2px 8px", borderRadius: 20, fontFamily: "'Courier New', monospace", fontWeight: 700 }}>
+                    URGENTE
+                  </span>
+                )}
+              </div>
+              <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, fontFamily: "'Courier New', monospace" }}>
+                /{c.slug}
+              </span>
+            </div>
+          ))}
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ── Ranking ───────────────────────────────────────────────────
+function Ranking() {
+  const [ranking, setRanking] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get("/admin/ranking?limit=20")
+      .then((r) => setRanking(r.ranking || []))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const medalha = (rank) => rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `#${rank}`;
+
+  if (loading) return <Loader />;
+
+  return (
+    <div>
+      <h2 style={{ color: "#fff", fontFamily: "'Courier New', monospace", marginBottom: 24, fontSize: 20 }}>
+        RANKING DE DOADORES
+      </h2>
+      <Card>
+        {ranking.length === 0 && (
+          <p style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Courier New', monospace" }}>
+            Nenhum doador ainda.
+          </p>
+        )}
+        {ranking.map((r) => (
+          <div key={r.rank} style={{
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            padding: "14px 0", borderBottom: "1px solid rgba(255,255,255,0.06)"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <span style={{ fontSize: 18, width: 30 }}>{medalha(r.rank)}</span>
+              <div>
+                <div style={{ color: "#fff", fontFamily: "'Courier New', monospace", fontSize: 14 }}>{r.nome}</div>
+                <div style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Courier New', monospace", fontSize: 11 }}>{r.nivel}</div>
+              </div>
+            </div>
+            <span style={{ color: "#00c896", fontFamily: "'Courier New', monospace", fontWeight: 900, fontSize: 16 }}>
+              {r.pontos} pts
+            </span>
+          </div>
+        ))}
+      </Card>
+    </div>
+  );
+}
+
+// ── Pontos de Coleta ──────────────────────────────────────────
+function Coletas() {
+  const [coletas, setColetas] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get("/admin/coletas")
+      .then((r) => setColetas(r.pontos_coleta || []))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <Loader />;
+
+  return (
+    <div>
+      <h2 style={{ color: "#fff", fontFamily: "'Courier New', monospace", marginBottom: 24, fontSize: 20 }}>
+        PONTOS DE COLETA
+      </h2>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+        {coletas.length === 0 && (
+          <Card>
+            <p style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Courier New', monospace" }}>
+              Nenhum ponto de coleta cadastrado.
+            </p>
+          </Card>
+        )}
+        {coletas.map((c) => (
+          <Card key={c.id}>
+            <div style={{ fontSize: 28, marginBottom: 10 }}>📍</div>
+            <div style={{ color: "#fff", fontFamily: "'Courier New', monospace", fontWeight: 700, marginBottom: 4 }}>
+              {c.nome}
+            </div>
+            <div style={{ color: "rgba(255,255,255,0.5)", fontFamily: "'Courier New', monospace", fontSize: 13 }}>
+              {c.endereco}
+            </div>
+            <div style={{ color: "#ffd32a", fontFamily: "'Courier New', monospace", fontSize: 11, marginTop: 8 }}>
+              {c.bairro}
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Loader ────────────────────────────────────────────────────
+function Loader({ small }) {
+  return (
+    <div style={{ textAlign: "center", padding: small ? 12 : 40,
+      color: "rgba(255,255,255,0.3)", fontFamily: "'Courier New', monospace", fontSize: small ? 12 : 14 }}>
+      carregando...
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// APP PRINCIPAL
+// ══════════════════════════════════════════════════════════════
+
+const TABS = [
+  { id: "dashboard",  label: "Dashboard",  Icon: Icons.Dashboard  },
+  { id: "doacao",     label: "Doação",     Icon: Icons.Donation   },
+  { id: "campanhas",  label: "Campanhas",  Icon: Icons.Campaign   },
+  { id: "ranking",    label: "Ranking",    Icon: Icons.Ranking    },
+  { id: "coletas",    label: "Coletas",    Icon: Icons.Location   },
+];
+
+export default function App() {
+  const [tab, setTab] = useState("dashboard");
+  const [toast, setToast] = useState(null);
+
+  const onToast = useCallback((msg, type) => setToast({ msg, type }), []);
+
+  const renderTab = () => {
+    switch (tab) {
+      case "dashboard": return <Dashboard />;
+      case "doacao":    return <RegistrarDoacao onToast={onToast} />;
+      case "campanhas": return <Campanhas onToast={onToast} />;
+      case "ranking":   return <Ranking />;
+      case "coletas":   return <Coletas />;
+      default:          return <Dashboard />;
+    }
+  };
+
+  return (
+    <div style={{ display: "flex", minHeight: "100vh", background: "#0a0a0a", fontFamily: "'Courier New', monospace" }}>
+      <style>{`
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        input::placeholder { color: rgba(255,255,255,0.2); }
+        select option { background: #1a1a1a; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+      `}</style>
+
+      {/* Sidebar */}
+      <div style={{
+        width: 220, background: "rgba(255,255,255,0.02)",
+        borderRight: "1px solid rgba(255,255,255,0.06)",
+        display: "flex", flexDirection: "column", padding: "24px 0",
+      }}>
+        {/* Logo */}
+        <div style={{ padding: "0 20px 28px" }}>
+          <div style={{ color: "#00c896", fontWeight: 900, fontSize: 15, letterSpacing: 1 }}>
+            ALISSON<span style={{ color: "#fff" }}>ASK</span>
+          </div>
+          <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 10, marginTop: 2 }}>
+            PAINEL ADMIN V0.6
+          </div>
+        </div>
+
+        {/* Nav */}
+        <nav style={{ flex: 1 }}>
+          {TABS.map(({ id, label, Icon }) => (
+            <button key={id} onClick={() => setTab(id)} style={{
+              width: "100%", display: "flex", alignItems: "center", gap: 12,
+              padding: "11px 20px", border: "none", cursor: "pointer",
+              background: tab === id ? "rgba(0,200,150,0.1)" : "transparent",
+              color: tab === id ? "#00c896" : "rgba(255,255,255,0.4)",
+              borderLeft: tab === id ? "2px solid #00c896" : "2px solid transparent",
+              transition: "all 0.15s", fontSize: 13, fontFamily: "'Courier New', monospace",
+              textAlign: "left",
+            }}>
+              <Icon />
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        {/* Footer */}
+        <div style={{ padding: "0 20px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 16 }}>
+          <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 10 }}>
+            Criado por<br/>
+            <span style={{ color: "rgba(255,255,255,0.4)" }}>Álisson Ferreira</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main */}
+      <div style={{ flex: 1, padding: 32, overflowY: "auto" }}>
+        {renderTab()}
+      </div>
+
+      {/* Toast */}
+      {toast && (
+        <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />
+      )}
+    </div>
+  );
+}
