@@ -1,14 +1,4 @@
 #pragma once
-// ============================================================
-// AlissonAsk V0.7 — intent_classifier.hpp
-// Classificador de intenção LOCAL — zero tokens Gemini.
-// Identifica a intenção antes de chamar a IA, permitindo:
-//   - Respostas instantâneas para ações conhecidas
-//   - Modo offline funcional
-//   - Rate limiting por intenção
-//
-// Hash das keywords via asm_fnv1a_hash (Assembly x86-64).
-// ============================================================
 
 #include "asm_utils.hpp"
 #include <string>
@@ -18,22 +8,22 @@
 
 enum class Intent : uint8_t {
     UNKNOWN = 0,
-    DONATE_INTENT,      // "quero doar", "como doar", "ajudar"
-    VOLUNTEER_INTENT,   // "quero ser voluntário", "voluntariar"
-    COLLECTION_POINT,   // "onde fica", "ponto de coleta", "endereço"
-    RANKING,            // "ranking", "meu nível", "pontos"
-    CAMPAIGNS,          // "campanhas", "o que precisa", "urgente"
-    RECEIPT_DONATION,   // "doei", "já doei", "fiz a doação"
-    LOCATION_REQUEST,   // "perto de mim", "mais próximo", enviou localização
-    MISSION,            // "missão", "desafio", "missões da semana"
-    GROUP,              // "grupo", "time solidário", "meu grupo"
-    HELP,               // "ajuda", "oi", "olá", "menu"
-    FRUSTRATION,        // "que merda", "não funciona", "péssimo" → escalar humano
+    DONATE_INTENT,
+    VOLUNTEER_INTENT,
+    COLLECTION_POINT,
+    RANKING,
+    CAMPAIGNS,
+    RECEIPT_DONATION,
+    LOCATION_REQUEST,
+    MISSION,
+    GROUP,
+    HELP,
+    FRUSTRATION,
 };
 
 struct ClassificationResult {
     Intent      intent    = Intent::UNKNOWN;
-    float       confidence = 0.0f;   // 0.0 – 1.0
+    float       confidence = 0.0f;
     std::string matched_keyword;
 };
 
@@ -42,7 +32,6 @@ public:
     [[nodiscard]] ClassificationResult classify(const std::string& message) const {
         const std::string lower = to_lower(message);
 
-        // Verifica cada grupo de palavras-chave
         for (const auto& rule : RULES_) {
             for (const char* kw : rule.keywords) {
                 if (!kw) break;
@@ -54,7 +43,6 @@ public:
         return { Intent::UNKNOWN, 0.0f, "" };
     }
 
-    // Retorna resposta offline para intenções conhecidas
     [[nodiscard]] static std::string offline_response(Intent intent) {
         switch (intent) {
         case Intent::DONATE_INTENT:
@@ -115,11 +103,10 @@ public:
                    "Aguarde um momento... 🙏";
 
         default:
-            return "";  // deixa o Gemini responder
+            return "";
         }
     }
 
-    // Retorna true se a intenção requer escalar para humano
     [[nodiscard]] static bool requires_human_escalation(Intent i) {
         return i == Intent::FRUSTRATION;
     }
@@ -128,7 +115,7 @@ private:
     struct Rule {
         Intent intent;
         float  base_confidence;
-        const char* keywords[12];  // null-terminated list
+        const char* keywords[12];
     };
 
     static constexpr std::array<Rule, 11> RULES_ = {{

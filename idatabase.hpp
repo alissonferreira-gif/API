@@ -1,21 +1,10 @@
 #pragma once
-// ============================================================
-// AlissonAsk V0.7 — idatabase.hpp  (substitui V0.6)
-// Interface do banco de dados expandida com:
-//   - lat/lng nos CollectionPoints
-//   - user_memory persistida
-//   - WeeklyMission e progresso
-//   - Grupos de doação
-//   - Exportação CSV
-//   - Auditoria admin
-// ============================================================
 
 #include <string>
 #include <vector>
 #include <cstdint>
 #include <ctime>
 
-// ── Estruturas de dados ───────────────────────────────────────
 
 struct UserProfile {
     int32_t     id       = 0;
@@ -35,17 +24,15 @@ struct Campaign {
     uint32_t    total_donated = 0;
     uint32_t    goal          = 0;
 
-    // Retorna % de progresso (0–100)
     [[nodiscard]] int progress_pct() const noexcept {
         if (goal == 0) return 0;
         int p = static_cast<int>((total_donated * 100u) / goal);
         return p > 100 ? 100 : p;
     }
 
-    // Barra visual de progresso 🟩🟩🟩⬜⬜
     [[nodiscard]] std::string progress_bar() const {
         int pct   = progress_pct();
-        int filled = pct / 20;          // 5 blocos = 100%
+        int filled = pct / 20;
         std::string bar;
         for (int i = 0; i < 5; ++i)
             bar += (i < filled) ? "🟩" : "⬜";
@@ -58,15 +45,15 @@ struct CollectionPoint {
     std::string name;
     std::string address;
     std::string neighborhood;
-    double      lat = 0.0;     // latitude (para rota)
-    double      lng = 0.0;     // longitude
-    std::string qr_code;       // token único para registro físico
+    double      lat = 0.0;
+    double      lng = 0.0;
+    std::string qr_code;
 };
 
 struct Donation {
     int32_t     user_id       = 0;
     int32_t     campaign_id   = 0;
-    std::string type;           // "physical" | "online" | "qr_scan"
+    std::string type;
     uint32_t    points_earned  = 0;
     int64_t     registered_at  = 0;
 };
@@ -108,55 +95,43 @@ struct DonationGroup {
     std::vector<int32_t> member_ids;
 };
 
-// ── Interface IDatabase ───────────────────────────────────────
 
 class IDatabase {
 public:
     virtual ~IDatabase() = default;
 
-    // Usuários
     virtual UserProfile get_or_create_user (const std::string& phone_id) = 0;
     virtual uint32_t    add_points         (int32_t user_id, uint32_t amount,
                                             const std::string& reason) = 0;
 
-    // Campanhas
     virtual std::vector<Campaign> get_active_campaigns  ()                              = 0;
     virtual void                  increment_campaign     (int32_t id, int_fast32_t amt) = 0;
 
-    // Pontos de coleta
     virtual std::vector<CollectionPoint> get_collection_points(const std::string& neighborhood) = 0;
 
-    // Doações
     virtual int64_t              register_donation  (const Donation& d)                    = 0;
     virtual std::vector<Donation> get_user_donations (int32_t user_id, int_fast32_t limit) = 0;
 
-    // Ranking
     virtual std::vector<RankingEntry> get_ranking   (int_fast32_t limit) = 0;
     virtual int32_t                   get_user_rank (int32_t user_id)    = 0;
 
-    // Conquistas
     virtual std::vector<Achievement> get_user_achievements (int32_t user_id)                      = 0;
     virtual bool                     unlock_achievement     (int32_t user_id, const std::string& slug) = 0;
 
-    // Voluntários
     virtual int32_t register_volunteer(const VolunteerRegistration& reg) = 0;
 
-    // Memória persistida de usuário (contexto Gemini)
     virtual void        save_user_memory(const std::string& phone_id,
                                          const std::string& memory_json) = 0;
     virtual std::string get_user_memory (const std::string& phone_id)    = 0;
 
-    // Missões semanais
     virtual std::vector<WeeklyMission> get_active_missions() = 0;
 
-    // Admin / Analytics
     virtual std::string export_donations_csv(int year, int month)            = 0;
     virtual void        log_admin_action    (const std::string& admin_id,
                                              const std::string& action,
                                              const std::string& detail = "") = 0;
 };
 
-// ── Função utilitária: pontos → nível ─────────────────────────
 [[nodiscard]] inline std::string points_to_level(uint32_t pts) {
     if (pts >= 2500) return "⚡ Deus";
     if (pts >= 1500) return "🔥 Lendário";

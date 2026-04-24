@@ -1,12 +1,4 @@
 #pragma once
-// ============================================================
-//  AlissonAsk V0.6 — GeminiClient
-//  Criado e Integrado por: Álisson Ferreira Dos Santos
-//
-//  Novidades V0.6:
-//  - ApiKeyManager: rodízio automático entre 10 keys
-//  - ResponseCache: respostas repetidas não chamam a API
-// ============================================================
 
 #include "api_key_manager.hpp"
 #include "response_cache.hpp"
@@ -16,10 +8,9 @@
 #include <stdexcept>
 #include <cstdint>
 
-// ── Estruturas de mensagem ────────────────────────────────────
 
 struct Message {
-    std::string role;      // "user" | "assistant"
+    std::string role;
     std::string content;
 };
 
@@ -28,10 +19,9 @@ struct ChatResponse {
     std::string  finish_reason;
     int_fast32_t input_tokens  = 0;
     int_fast32_t output_tokens = 0;
-    bool         from_cache    = false;  // true = economizou tokens
+    bool         from_cache    = false;
 };
 
-// ── Exceções ──────────────────────────────────────────────────
 
 class GeminiException : public std::runtime_error {
 public:
@@ -46,7 +36,6 @@ class RateLimitException    : public GeminiException { using GeminiException::Ge
 class InvalidKeyException   : public GeminiException { using GeminiException::GeminiException; };
 class SafetyFilterException : public GeminiException { using GeminiException::GeminiException; };
 
-// ── GeminiClient ─────────────────────────────────────────────
 
 class GeminiClient {
 public:
@@ -56,21 +45,17 @@ public:
         int_fast32_t max_tokens    = 512;
         int_fast32_t timeout_sec   = 20;
         std::string  system_prompt;
-        int          cache_ttl_min = 60;   // tempo de vida do cache em minutos
+        int          cache_ttl_min = 60;
     };
 
-    // Construtor com múltiplas keys (V0.6)
     explicit GeminiClient(std::vector<std::string> api_keys, Config cfg = {});
 
-    // Construtor legado com uma key (retrocompatível)
     explicit GeminiClient(std::string api_key, Config cfg = {});
 
     ~GeminiClient();
 
-    // Envia histórico e retorna resposta (usa cache se possível)
     [[nodiscard]] ChatResponse chat(const std::vector<Message>& history);
 
-    // Setters de configuração
     void set_model      (std::string m)  { cfg_.model        = std::move(m); }
     void set_temperature(double t)       { cfg_.temperature  = t; }
     void set_max_tokens (int_fast32_t n) { cfg_.max_tokens   = n; }
@@ -90,6 +75,5 @@ private:
     [[nodiscard]] std::string http_post     (const std::string& url, const std::string& body);
     [[nodiscard]] ChatResponse parse_response(const std::string& raw) const;
 
-    // Extrai a última mensagem do usuário para usar como chave de cache
     [[nodiscard]] static std::string last_user_message(const std::vector<Message>& history);
 };

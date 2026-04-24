@@ -1,26 +1,3 @@
-// ============================================================
-// AlissonAsk V0.7 — Entry Point
-// Criado e Integrado por: Álisson Ferreira Dos Santos
-//
-// Novidades V0.7:
-//   - SQLiteDatabase (substitui MockDatabase)
-//   - Rate limiter por phone_id (Assembly hash)
-//   - Validação E.164 (Assembly)
-//   - Intent classifier local (zero tokens)
-//   - Sentiment analysis + escalonamento humano
-//   - Gamificação: missões, 2x urgente, streaks, presentes
-//   - GeoLocation: ponto de coleta mais próximo
-//   - Thread pool (hardware_concurrency threads)
-//   - Notificações proativas (scheduler em background)
-//   - Admin: exportar CSV, auditoria, alertas
-//   - Webhook QR code de ponto de coleta
-//   - Webhook PIX confirmado
-//   - Modo offline completo
-//
-// Uso:
-//   AlissonAsk            → demo terminal
-//   AlissonAsk --server   → servidor HTTP na porta 8080
-// ============================================================
 
 #include "gemini_client.hpp"
 #include "conversation_manager.hpp"
@@ -42,7 +19,6 @@
 
 using json = nlohmann::json;
 
-// ── Variáveis de ambiente ─────────────────────────────────────
 
 [[nodiscard]] static std::string require_env(const char* name) {
     const char* v = std::getenv(name);
@@ -59,7 +35,6 @@ using json = nlohmann::json;
     return (v && *v) ? std::string(v) : fallback;
 }
 
-// ── System prompt V0.7 ────────────────────────────────────────
 
 constexpr std::string_view SYSTEM_PROMPT = R"(
 Você é AlissonAsk V0.7, assistente oficial do projeto Solidário.
@@ -91,7 +66,6 @@ Doações em campanhas URGENTES nas primeiras 24h valem 2x pontos!
 Finalize com pergunta ou call-to-action.
 )";
 
-// ── Modo demo terminal ────────────────────────────────────────
 
 static void run_demo(ChatbotEngine& engine) {
     std::println("╔══════════════════════════════════════════╗");
@@ -124,7 +98,6 @@ static void run_demo(ChatbotEngine& engine) {
             std::print("[{}] ", phone);
             EngineResult result;
 
-            // Comandos especiais de demo
             if (content.starts_with("!loc ")) {
                 double lat = 0, lng = 0;
                 std::sscanf(content.c_str(), "!loc %lf %lf", &lat, &lng);
@@ -166,7 +139,6 @@ static void run_demo(ChatbotEngine& engine) {
     }
 }
 
-// ── Modo servidor (WhatsApp webhook) ─────────────────────────
 
 static void run_server(ChatbotEngine&       engine,
                         WhatsAppClient&      wa,
@@ -176,7 +148,6 @@ static void run_server(ChatbotEngine&       engine,
 {
     httplib::Server svr;
 
-    // ── Verificação do webhook WhatsApp ──
     svr.Get("/webhook", [&](const httplib::Request& req, httplib::Response& res) {
         if (req.get_param_value("hub.verify_token") == verify_token)
             res.set_content(req.get_param_value("hub.challenge"), "text/plain");
@@ -184,11 +155,9 @@ static void run_server(ChatbotEngine&       engine,
             res.status = 403;
     });
 
-    // ── Mensagens de texto WhatsApp ──
     svr.Post("/webhook", [&](const httplib::Request& req, httplib::Response& res) {
         std::string body = req.body;
 
-        // Processa em thread separada (não bloqueia o handler)
         pool.submit([&engine, &wa, &db, body] {
             try {
                 auto wm = WhatsAppClient::parse_webhook(body);
@@ -198,7 +167,6 @@ static void run_server(ChatbotEngine&       engine,
 
                 EngineResult result;
 
-                // Verifica se é localização
                 if (body.find("\"type\":\"location\"") != std::string::npos) {
                     double lat = 0, lng = 0;
                     GeoLocation::parse_location(body, lat, lng);
@@ -228,7 +196,6 @@ static void run_server(ChatbotEngine&       engine,
         res.set_content("{}", "application/json");
     });
 
-    // ── Webhook PIX confirmado ──
     svr.Post("/webhook/pix", [&](const httplib::Request& req, httplib::Response& res) {
         try {
             auto j = json::parse(req.body);
@@ -248,7 +215,6 @@ static void run_server(ChatbotEngine&       engine,
         res.set_content("{\"ok\":true}", "application/json");
     });
 
-    // ── Webhook QR code ──
     svr.Post("/webhook/qr", [&](const httplib::Request& req, httplib::Response& res) {
         try {
             auto j    = json::parse(req.body);
@@ -266,10 +232,8 @@ static void run_server(ChatbotEngine&       engine,
         res.set_content("{\"ok\":true}", "application/json");
     });
 
-    // ── Admin: exportar CSV ──
     svr.Get("/admin/csv/:year/:month", [&](const httplib::Request& req,
                                              httplib::Response& res) {
-        // Autenticação via Bearer token
         std::string auth = req.get_header_value("Authorization");
         std::string expected = "Bearer " + optional_env("ADMIN_TOKEN", "admin123");
         if (auth != expected) { res.status = 401; return; }
@@ -290,7 +254,6 @@ static void run_server(ChatbotEngine&       engine,
         }
     });
 
-    // ── Admin: ranking ──
     svr.Get("/admin/ranking", [&](const httplib::Request& req, httplib::Response& res) {
         std::string auth = req.get_header_value("Authorization");
         if (auth != "Bearer " + optional_env("ADMIN_TOKEN", "admin123")) {
@@ -303,7 +266,6 @@ static void run_server(ChatbotEngine&       engine,
         res.set_content(j.dump(2), "application/json");
     });
 
-    // ── Health check ──
     svr.Get("/health", [](const httplib::Request&, httplib::Response& res) {
         res.set_content("{\"status\":\"ok\",\"version\":\"0.7\"}", "application/json");
     });
@@ -325,11 +287,9 @@ static void run_server(ChatbotEngine&       engine,
     svr.listen("0.0.0.0", 8080);
 }
 
-// ── main ──────────────────────────────────────────────────────
 
 int main(int argc, char* argv[]) {
     try {
-        // ── API keys Gemini (rodízio) ──
         std::vector<std::string> keys;
         for (int i = 1; i <= 10; ++i) {
             std::string key = optional_env(
@@ -344,7 +304,6 @@ int main(int argc, char* argv[]) {
                 keys.size(), keys.size() * 1500);
         }
 
-        // ── Gemini ──
         GeminiClient::Config gcfg;
         gcfg.model        = "gemini-2.0-flash";
         gcfg.temperature  = 0.72;
@@ -354,25 +313,20 @@ int main(int argc, char* argv[]) {
         gcfg.cache_ttl_min= 60;
         GeminiClient gemini(std::move(keys), gcfg);
 
-        // ── ConversationManager ──
         ConversationManager::Config ccfg;
         ccfg.max_history = 20;
         ccfg.timeout_min = 30;
         ConversationManager conv(gemini, ccfg);
 
-        // ── SQLite Database ──
         std::string db_path = optional_env("DB_PATH", "alisonask.db");
         SQLiteDatabase db(db_path);
         std::println("[DB] SQLite em: {}", db_path);
 
-        // ── Thread Pool ──
-        ThreadPool pool;  // hardware_concurrency threads
+        ThreadPool pool;
         std::println("[ThreadPool] {} threads", pool.thread_count());
 
-        // ── Engine principal ──
         ChatbotEngine engine(gemini, conv, db);
 
-        // ── Modo servidor ou demo ──
         bool server_mode = (argc > 1 && std::string(argv[1]) == "--server");
 
         if (server_mode) {
@@ -383,14 +337,12 @@ int main(int argc, char* argv[]) {
             WhatsAppClient::Config wcfg{ wa_phone, wa_token };
             WhatsAppClient wa(wcfg);
 
-            // ── Scheduler de notificações ──
             NotificationScheduler scheduler(
                 db, pool,
                 [&wa](const std::string& phone, const std::string& msg) {
                     wa.send_text(phone, msg);
                 },
                 [](const std::string& subj, const std::string& body) {
-                    // TODO: enviar e-mail/Slack via ADMIN_WEBHOOK env
                     std::println("[Alert] {}: {}", subj, body);
                 }
             );

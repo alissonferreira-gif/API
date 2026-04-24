@@ -1,9 +1,4 @@
 #pragma once
-// ============================================================
-// AlissonAsk V0.7 — sentiment_analyzer.hpp
-// Análise de sentimento local: detecta frustração/urgência
-// e decide se deve escalar para atendente humano.
-// ============================================================
 
 #include <string>
 #include <array>
@@ -14,14 +9,14 @@ enum class Sentiment : uint8_t {
     POSITIVE,
     NEUTRAL,
     NEGATIVE,
-    FRUSTRATED,   // escalar para humano
+    FRUSTRATED,
 };
 
 struct SentimentResult {
     Sentiment   sentiment    = Sentiment::NEUTRAL;
-    float       score        = 0.0f;   // -1.0 (muito negativo) a +1.0 (muito positivo)
-    bool        escalate     = false;  // deve chamar atendente humano?
-    std::string reason;                // palavra que disparou
+    float       score        = 0.0f;
+    bool        escalate     = false;
+    std::string reason;
 };
 
 class SentimentAnalyzer {
@@ -40,7 +35,6 @@ public:
         for (const auto& w : FRUSTRATION_WORDS_)
             if (lower.find(w) != std::string::npos) { score -= 0.8f; trigger = w; }
 
-        // Clamp
         if (score >  1.0f) score =  1.0f;
         if (score < -1.0f) score = -1.0f;
 

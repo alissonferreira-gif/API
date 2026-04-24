@@ -1,12 +1,4 @@
 #pragma once
-// ============================================================
-//  AlissonAsk V0.5 — ConversationManager
-//  Criado e Integrado por: Álisson Ferreira Dos Santos
-//  Arquivo: include/conversation_manager.hpp
-//
-//  Gerencia histórico de conversa por usuário.
-//  Cada número de WhatsApp é uma sessão independente.
-// ============================================================
 
 #include "gemini_client.hpp"
 
@@ -20,15 +12,13 @@
 class ConversationManager {
 public:
     struct Config {
-        int_fast32_t max_history  = 20;   // máx de mensagens por sessão
-        int_fast32_t timeout_min  = 30;   // minutos de inatividade → reset
+        int_fast32_t max_history  = 20;
+        int_fast32_t timeout_min  = 30;
         std::string  system_prompt;
     };
 
     explicit ConversationManager(GeminiClient& client, Config cfg = {});
 
-    // Envia mensagem e retorna resposta (bloqueante)
-    // user_id = número WhatsApp: "5511999998888"
     [[nodiscard]] ChatResponse reply(
         const std::string& user_id,
         const std::string& user_message

@@ -1,9 +1,4 @@
 #pragma once
-// ============================================================
-// AlissonAsk V0.7 — geolocation.hpp
-// Encontra ponto de coleta mais próximo via fórmula Haversine.
-// Gera link Google Maps direto para o usuário.
-// ============================================================
 
 #include "idatabase.hpp"
 #include <cmath>
@@ -23,7 +18,6 @@ public:
         std::string     formatted_message;
     };
 
-    // Encontra o ponto de coleta mais próximo das coordenadas dadas
     [[nodiscard]] std::optional<NearestResult> find_nearest(
         double user_lat, double user_lng) const
     {
@@ -64,11 +58,9 @@ public:
         return r;
     }
 
-    // Parse de localização recebida via WhatsApp (JSON com lat/lng)
     static bool parse_location(const std::string& json_body,
                                 double& lat, double& lng)
     {
-        // JSON esperado: {"lat":-23.55,"lng":-46.63}
         auto find_val = [&](const std::string& key) -> std::optional<double> {
             auto pos = json_body.find("\"" + key + "\"");
             if (pos == std::string::npos) return std::nullopt;
@@ -91,11 +83,10 @@ public:
 private:
     IDatabase& db_;
 
-    // Fórmula Haversine — distância em km entre dois pontos GPS
     static double haversine(double lat1, double lng1,
                              double lat2, double lng2) noexcept
     {
-        constexpr double R = 6371.0; // raio da Terra em km
+        constexpr double R = 6371.0;
         const double dlat = deg2rad(lat2 - lat1);
         const double dlng = deg2rad(lng2 - lng1);
         const double a = std::sin(dlat/2)*std::sin(dlat/2)

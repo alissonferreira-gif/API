@@ -1,21 +1,4 @@
 #pragma once
-// ============================================================
-//  AlissonAsk V0.6 — AdminRouter
-//  Rotas REST para painel administrativo.
-//
-//  Endpoints:
-//  GET  /admin/relatorio          → resumo financeiro geral
-//  GET  /admin/campanhas          → lista campanhas ativas
-//  POST /admin/campanhas          → cria nova campanha
-//  POST /admin/doacao             → registra doação manual
-//  GET  /admin/ranking            → ranking de doadores
-//  GET  /admin/coletas            → pontos de coleta
-//  POST /admin/coletas            → adiciona ponto de coleta
-//  DELETE /admin/campanha/:id     → encerra campanha
-//
-//  Todas as rotas exigem header:
-//    Authorization: Bearer <ADMIN_TOKEN>
-// ============================================================
 
 #include "idatabase.hpp"
 #include <httplib.h>
@@ -32,22 +15,17 @@ public:
     explicit AdminRouter(IDatabase& db, std::string admin_token)
         : db_(db), token_(std::move(admin_token)) {}
 
-    // Registra todas as rotas admin no servidor
     void register_routes(httplib::Server& svr) {
-        // ── Relatório financeiro ──────────────────────────
         svr.Get("/admin/relatorio", [this](const httplib::Request& req, httplib::Response& res) {
             if (!authorized(req, res)) return;
 
             auto campanhas  = db_.get_active_campaigns();
             auto ranking    = db_.get_ranking(10);
 
-            // Soma total de doações
             uint64_t total_doacoes = 0;
             uint64_t total_online  = 0;
             uint64_t total_fisico  = 0;
 
-            // Em produção: query agregada no BD
-            // Aqui simulamos com ranking
             for (const auto& r : ranking)
                 total_doacoes += r.points;
 
@@ -70,7 +48,6 @@ public:
             std::println("[Admin] GET /relatorio");
         });
 
-        // ── Lista campanhas ───────────────────────────────
         svr.Get("/admin/campanhas", [this](const httplib::Request& req, httplib::Response& res) {
             if (!authorized(req, res)) return;
 
@@ -89,21 +66,17 @@ public:
             std::println("[Admin] GET /campanhas");
         });
 
-        // ── Cria nova campanha ────────────────────────────
         svr.Post("/admin/campanhas", [this](const httplib::Request& req, httplib::Response& res) {
             if (!authorized(req, res)) return;
 
             auto body = parse_body(req, res);
             if (!body) return;
 
-            // Valida campos obrigatórios
             if (!body->contains("nome") || !body->contains("slug")) {
                 send_error(res, 400, "Campos obrigatórios: nome, slug");
                 return;
             }
 
-            // Em produção: INSERT no banco
-            // A equipe de BD implementa um método create_campaign()
             json resp = {
                 { "sucesso",  true },
                 { "mensagem", std::format("Campanha '{}' criada com sucesso!",
@@ -116,7 +89,6 @@ public:
                          (*body)["nome"].get<std::string>());
         });
 
-        // ── Registra doação manual ────────────────────────
         svr.Post("/admin/doacao", [this](const httplib::Request& req, httplib::Response& res) {
             if (!authorized(req, res)) return;
 
@@ -129,7 +101,7 @@ public:
             }
 
             std::string phone    = (*body)["phone_id"].get<std::string>();
-            std::string tipo     = (*body)["tipo"].get<std::string>();     // "fisica" | "online"
+            std::string tipo     = (*body)["tipo"].get<std::string>();
             double      valor    = (*body)["valor_brl"].get<double>();
             int32_t     campanha = body->value("campanha_id", 0);
 
@@ -162,7 +134,6 @@ public:
                          phone, valor, d.points_earned);
         });
 
-        // ── Ranking de doadores ───────────────────────────
         svr.Get("/admin/ranking", [this](const httplib::Request& req, httplib::Response& res) {
             if (!authorized(req, res)) return;
 
@@ -184,7 +155,6 @@ public:
             std::println("[Admin] GET /ranking (top {})", limit);
         });
 
-        // ── Pontos de coleta ──────────────────────────────
         svr.Get("/admin/coletas", [this](const httplib::Request& req, httplib::Response& res) {
             if (!authorized(req, res)) return;
 
@@ -204,7 +174,6 @@ public:
             std::println("[Admin] GET /coletas");
         });
 
-        // ── Health check (sem autenticação) ──────────────
         svr.Get("/admin/health", [](const httplib::Request&, httplib::Response& res) {
             send_json(res, {
                 { "status",  "ok" },
@@ -227,7 +196,6 @@ private:
     IDatabase&  db_;
     std::string token_;
 
-    // ── Autenticação ──────────────────────────────────────
     bool authorized(const httplib::Request& req, httplib::Response& res) {
         auto auth = req.get_header_value("Authorization");
         if (auth == std::format("Bearer {}", token_)) return true;
@@ -236,7 +204,6 @@ private:
         return false;
     }
 
-    // ── Helpers ───────────────────────────────────────────
     static void send_json(httplib::Response& res, const json& j, int status = 200) {
         res.status = status;
         res.set_content(j.dump(2), "application/json");

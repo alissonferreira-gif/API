@@ -13,18 +13,14 @@ public:
             throw std::runtime_error("Nenhuma API key fornecida!");
     }
 
-    // Retorna a key atual
     std::string getCurrentKey() const {
         return m_keys[m_currentIndex % m_keys.size()];
     }
 
-    // Vai para a próxima key (chame quando a atual falhar ou atingir limite)
     void nextKey() {
         m_currentIndex = (m_currentIndex + 1) % m_keys.size();
     }
 
-    // Tenta a requisição com rodízio automático em caso de falha
-    // Retorna o índice da key que funcionou, ou lança exceção se todas falharem
     std::string getKeyWithFallback(bool forceNext = false) {
         if (forceNext) nextKey();
 

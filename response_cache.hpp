@@ -1,10 +1,4 @@
 #pragma once
-// ============================================================
-//  AlissonAsk V0.6 — ResponseCache
-//  Cache de respostas para economizar tokens da Gemini API.
-//  Respostas idênticas (mesmo texto normalizado) são servidas
-//  do cache sem chamar a API.
-// ============================================================
 
 #include <string>
 #include <unordered_map>
@@ -19,10 +13,8 @@ struct CachedEntry {
 
 class ResponseCache {
 public:
-    // ttl_min: tempo de vida de cada entrada em minutos (padrão 60)
     explicit ResponseCache(int ttl_min = 60) : ttl_min_(ttl_min) {}
 
-    // Normaliza a mensagem (lowercase, sem espaços extras)
     static std::string normalize(const std::string& msg) {
         std::string out;
         out.reserve(msg.size());
@@ -40,8 +32,6 @@ public:
         return out;
     }
 
-    // Tenta obter resposta do cache
-    // Retorna string vazia se não encontrado ou expirado
     std::string get(const std::string& message) {
         prune();
         auto key = normalize(message);
@@ -56,7 +46,6 @@ public:
         return it->second.response;
     }
 
-    // Armazena uma resposta no cache
     void set(const std::string& message, const std::string& response) {
         auto key = normalize(message);
         cache_[key] = { response, std::chrono::steady_clock::now() };
@@ -69,7 +58,6 @@ private:
     int ttl_min_;
     std::unordered_map<std::string, CachedEntry> cache_;
 
-    // Remove entradas expiradas
     void prune() {
         const auto now = std::chrono::steady_clock::now();
         std::erase_if(cache_, [&](const auto& kv) {
