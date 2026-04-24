@@ -4,6 +4,18 @@ global asm_fnv1a_hash
 global asm_validate_e164
 global asm_get_epoch_ms
 global asm_popcount32
+global asm_training_area_store
+global asm_training_area_data
+global asm_training_area_size
+global asm_training_area_clear
+
+section .bss
+training_area:        resb 65536
+training_area_size_v: resq 1
+
+%define TRAINING_AREA_CAP 65536
+
+section .text
 
 asm_fnv1a_hash:
     mov     rax, 0xcbf29ce484222325   ; FNV offset basis
@@ -86,4 +98,45 @@ asm_get_epoch_ms:
 
 asm_popcount32:
     popcnt  eax, edi                  ; instrução nativa SSE4.2
+    ret
+
+asm_training_area_store:
+    test    rdi, rdi
+    jz      .store_none
+    test    rsi, rsi
+    jz      .store_none
+
+    mov     r8, [rel training_area_size_v]
+    cmp     r8, TRAINING_AREA_CAP
+    jae     .store_none
+
+    mov     rcx, TRAINING_AREA_CAP
+    sub     rcx, r8
+    cmp     rsi, rcx
+    cmova   rsi, rcx
+
+    lea     r9, [rel training_area + r8]
+    mov     rcx, rsi
+    rep     movsb
+
+    add     r8, rsi
+    mov     [rel training_area_size_v], r8
+    mov     rax, rsi
+    ret
+
+.store_none:
+    xor     rax, rax
+    ret
+
+asm_training_area_data:
+    lea     rax, [rel training_area]
+    ret
+
+asm_training_area_size:
+    mov     rax, [rel training_area_size_v]
+    ret
+
+asm_training_area_clear:
+    xor     rax, rax
+    mov     [rel training_area_size_v], rax
     ret
