@@ -1,10 +1,3 @@
-/*
- * ============================================================
- *   Rede Neural em C++ — Do Zero
- *   Arquitetura: Feedforward com Backpropagation
- *   Problema resolvido: Porta XOR (nao linearmente separavel)
- * ============================================================
- */
 
 #include <iostream>
 #include <vector>
@@ -13,7 +6,7 @@
 #include <ctime>
 #include <iomanip>
 
-// ─── Funcoes de ativacao ─────────────────────────────────────
+
 
 double sigmoid(double x) {
     return 1.0 / (1.0 + exp(-x));
@@ -24,39 +17,38 @@ double sigmoid_deriv(double x) {
     return s * (1.0 - s);
 }
 
-// ─── Peso aleatorio entre -1 e 1 ─────────────────────────────
+
 
 double rand_weight() {
     return ((double)rand() / RAND_MAX) * 2.0 - 1.0;
 }
 
-// ─── Classe: Rede Neural ──────────────────────────────────────
 
 class NeuralNetwork {
 public:
-    // Tamanhos das camadas
+
     int input_size;
     int hidden_size;
     int output_size;
 
-    // Pesos e biases
-    std::vector<std::vector<double>> W1; // input  -> hidden
-    std::vector<std::vector<double>> W2; // hidden -> output
-    std::vector<double>              B1; // bias da camada oculta
-    std::vector<double>              B2; // bias da camada de saida
 
-    // Valores intermediarios (para backprop)
-    std::vector<double> z1, a1; // pre- e pos-ativacao: hidden
-    std::vector<double> z2, a2; // pre- e pos-ativacao: output
+    std::vector<std::vector<double>> W1; 
+    std::vector<std::vector<double>> W2;
+    std::vector<double>              B1;
+    std::vector<double>              B2;
+
+   
+    std::vector<double> z1, a1;
+    std::vector<double> z2, a2;
 
     double learning_rate;
 
-    // ── Construtor ───────────────────────────────────────────
+
     NeuralNetwork(int in, int hidden, int out, double lr = 0.5)
         : input_size(in), hidden_size(hidden), output_size(out),
           learning_rate(lr)
     {
-        // Inicializa pesos aleatorios
+        
         W1.assign(hidden_size, std::vector<double>(input_size));
         W2.assign(output_size, std::vector<double>(hidden_size));
         B1.assign(hidden_size, 0.0);
@@ -71,9 +63,9 @@ public:
                 W2[i][j] = rand_weight();
     }
 
-    // ── Forward Pass ─────────────────────────────────────────
+ 
     std::vector<double> forward(const std::vector<double>& input) {
-        // Camada oculta
+     
         z1.assign(hidden_size, 0.0);
         a1.assign(hidden_size, 0.0);
         for (int i = 0; i < hidden_size; i++) {
@@ -83,7 +75,7 @@ public:
             a1[i] = sigmoid(z1[i]);
         }
 
-        // Camada de saida
+     
         z2.assign(output_size, 0.0);
         a2.assign(output_size, 0.0);
         for (int i = 0; i < output_size; i++) {
@@ -96,16 +88,16 @@ public:
         return a2;
     }
 
-    // ── Backpropagation ──────────────────────────────────────
+ 
     void backward(const std::vector<double>& input,
                   const std::vector<double>& target)
     {
-        // Gradiente da camada de saida
+     
         std::vector<double> delta2(output_size);
         for (int i = 0; i < output_size; i++)
             delta2[i] = (a2[i] - target[i]) * sigmoid_deriv(z2[i]);
 
-        // Gradiente da camada oculta
+   
         std::vector<double> delta1(hidden_size, 0.0);
         for (int i = 0; i < hidden_size; i++) {
             for (int k = 0; k < output_size; k++)
@@ -113,14 +105,14 @@ public:
             delta1[i] *= sigmoid_deriv(z1[i]);
         }
 
-        // Atualiza W2 e B2
+        
         for (int i = 0; i < output_size; i++) {
             for (int j = 0; j < hidden_size; j++)
                 W2[i][j] -= learning_rate * delta2[i] * a1[j];
             B2[i] -= learning_rate * delta2[i];
         }
 
-        // Atualiza W1 e B1
+     
         for (int i = 0; i < hidden_size; i++) {
             for (int j = 0; j < input_size; j++)
                 W1[i][j] -= learning_rate * delta1[i] * input[j];
@@ -128,7 +120,7 @@ public:
         }
     }
 
-    // ── Treinamento ──────────────────────────────────────────
+    // ── Treinamento 
     void train(const std::vector<std::vector<double>>& X,
                const std::vector<std::vector<double>>& Y,
                int epochs)
@@ -150,13 +142,13 @@ public:
         }
     }
 
-    // ── Predicao ────────────────────────────────────────────
+   
     double predict(const std::vector<double>& input) {
         return forward(input)[0];
     }
 };
 
-// ─── Main ────────────────────────────────────────────────────
+
 
 int main() {
     srand((unsigned)time(nullptr));
@@ -165,14 +157,7 @@ int main() {
     std::cout << "   Rede Neural C++ — Porta XOR\n";
     std::cout << "====================================\n\n";
 
-    // Dataset XOR: nao e linearmente separavel —
-    // um perceptron simples nao resolve, mas nossa rede resolve.
-    //
-    //   A   B   XOR
-    //   0   0    0
-    //   0   1    1
-    //   1   0    1
-    //   1   1    0
+  
 
     std::vector<std::vector<double>> X = {
         {0, 0}, {0, 1}, {1, 0}, {1, 1}
@@ -181,7 +166,7 @@ int main() {
         {0}, {1}, {1}, {0}
     };
 
-    // Rede: 2 entradas, 4 neuronios ocultos, 1 saida
+
     NeuralNetwork nn(2, 4, 1, 0.5);
 
     std::cout << "Treinando por 10.000 epocas...\n\n";
