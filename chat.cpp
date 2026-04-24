@@ -11,6 +11,7 @@
 #include <sstream>
 #include <chrono>
 #include <immintrin.h>
+#include "asm_utils.hpp"
 
 static constexpr int   VSIZE = 64;
 static constexpr int   HSIZE = 32;
@@ -316,6 +317,9 @@ int main() {
             printf("\033[1;35mNeuralChat:\033[0m Até logo! Foi um prazer conversar.\n");
             break;
         }
+
+        training_data_append(trimmed);
+        training_data_append("\n");
 
         std::string resp = predict(trimmed);
         printf("\033[1;35mNeuralChat:\033[0m %s\n\n", resp.c_str());
