@@ -1,9 +1,4 @@
 #pragma once
-// ============================================================
-// AlissonAsk V0.7 — sentiment_analyzer.hpp
-// Análise de sentimento local: detecta frustração/urgência
-// e decide se deve escalar para atendente humano.
-// ============================================================
 
 #include <string>
 #include <array>
@@ -40,7 +35,6 @@ public:
         for (const auto& w : FRUSTRATION_WORDS_)
             if (lower.find(w) != std::string::npos) { score -= 0.8f; trigger = w; }
 
-        // Clamp
         if (score >  1.0f) score =  1.0f;
         if (score < -1.0f) score = -1.0f;
 

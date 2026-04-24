@@ -1,18 +1,3 @@
-// ============================================================
-// AlissonAsk V0.7 — chatbot_engine.cpp
-// Criado e Integrado por: Álisson Ferreira Dos Santos
-//
-// Novidades V0.7:
-//   - IntentClassifier local (zero tokens para ações conhecidas)
-//   - SentimentAnalyzer + escalonamento humano
-//   - GamificationEngine: missões, multiplicadores 2x, streaks
-//   - GeoLocation: ponto mais próximo via Haversine
-//   - RateLimiter: anti-spam sliding window (Assembly hash)
-//   - Memória de usuário persistida no SQLite
-//   - Modo offline completo
-//   - QR code de ponto de coleta
-//   - Presente de pontos entre usuários
-// ============================================================
 
 #include "chatbot_engine.hpp"
 #include <format>
@@ -22,14 +7,12 @@
 
 using json = nlohmann::json;
 
-// ── Helpers internos ──────────────────────────────────────────
 
 int64_t ChatbotEngine::now_unix() {
     return std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
-// ── Constructor ───────────────────────────────────────────────
 
 ChatbotEngine::ChatbotEngine(
     GeminiClient&        gemini,
@@ -41,7 +24,6 @@ ChatbotEngine::ChatbotEngine(
       rate_limiter_(20, 60'000)   // 20 msgs/minuto por phone_id
 {}
 
-// ── build_context: injeta memória do usuário no Gemini ────────
 
 std::string ChatbotEngine::build_context(
     const std::string& phone_id,
@@ -58,21 +40,18 @@ std::string ChatbotEngine::build_context(
     return ctx;
 }
 
-// ── update_user_memory: persiste fatos da conversa ────────────
 
 void ChatbotEngine::update_user_memory(
     const std::string& phone_id,
     const std::string& message,
     Intent intent)
 {
-    // Recupera memória existente
     std::string existing = db_.get_user_memory(phone_id);
     json mem = json::object();
     if (!existing.empty() && existing != "{}") {
         try { mem = json::parse(existing); } catch (...) {}
     }
 
-    // Atualiza com base na intenção detectada
     switch (intent) {
     case Intent::DONATE_INTENT:
         mem["last_intent"] = "donate";
@@ -92,14 +71,12 @@ void ChatbotEngine::update_user_memory(
     db_.save_user_memory(phone_id, mem.dump());
 }
 
-// ── escalate_to_human: webhook de escalonamento ───────────────
 
 void ChatbotEngine::escalate_to_human(
     const std::string& phone_id,
     const std::string& message,
     const std::string& reason)
 {
-    // Log no banco
     db_.log_admin_action("system", "escalate_human",
         std::format("phone={} reason={} msg={}", phone_id, reason, message));
 
@@ -107,7 +84,6 @@ void ChatbotEngine::escalate_to_human(
     std::println("[Escalation] {} → humano. Razão: {}", phone_id, reason);
 }
 
-// ── handle_message: ponto de entrada principal ────────────────
 
 EngineResult ChatbotEngine::handle_message(
     const std::string& phone_id,
@@ -115,27 +91,22 @@ EngineResult ChatbotEngine::handle_message(
 {
     EngineResult result;
 
-    // 1. Valida formato E.164
     if (!is_valid_phone(phone_id)) {
         result.reply = "❌ Número de telefone inválido.";
         return result;
     }
 
-    // 2. Rate limiting (Assembly hash interno)
     if (rate_limiter_.is_limited(phone_id)) {
         result.rate_limited = true;
         result.reply = "⏳ Você enviou muitas mensagens. Aguarde 1 minuto e tente novamente.";
         return result;
     }
 
-    // 3. Garante usuário no banco
     auto user = db_.get_or_create_user(phone_id);
 
-    // 4. Sentiment analysis
     auto sent_result = sentiment_.analyze(message);
     result.sentiment = sent_result.sentiment;
 
-    // 5. Escalonamento por frustração
     if (sent_result.escalate) {
         result.escalated_to_human = true;
         escalate_to_human(phone_id, message, sent_result.reason);
@@ -143,17 +114,13 @@ EngineResult ChatbotEngine::handle_message(
         return result;
     }
 
-    // 6. Classificação de intenção local
     auto cls = classifier_.classify(message);
     result.detected_intent = cls.intent;
 
-    // 7. Atualiza memória do usuário
     update_user_memory(phone_id, message, cls.intent);
 
-    // 8. Se intenção conhecida → resposta instantânea (zero tokens)
     std::string offline = IntentClassifier::offline_response(cls.intent);
     if (!offline.empty() && cls.confidence >= 0.85f) {
-        // Adiciona pontos pela mensagem
         uint32_t total = db_.add_points(user.id, 5u, "message");
 
         result.reply         = offline;
@@ -161,13 +128,11 @@ EngineResult ChatbotEngine::handle_message(
         result.total_points  = total;
         result.level         = points_to_level(total);
 
-        // Verifica conquistas
         user.points = total;
         check_achievements(user, result);
         return result;
     }
 
-    // 9. Detecta "doei" na mensagem para registrar doação física
     std::string lower = message;
     std::transform(lower.begin(), lower.end(), lower.begin(),
         [](unsigned char c){ return static_cast<char>(std::tolower(c)); });
@@ -187,12 +152,10 @@ EngineResult ChatbotEngine::handle_message(
         user.points    = total;
         user.donations++;
 
-        // Verifica streak
         auto streak = gamification_.check_streak(user.id);
         if (streak.achievement_3)
             db_.unlock_achievement(user.id, "streak_3");
 
-        // Verifica missões semanais
         auto missions = gamification_.update_missions(user.id);
         if (!missions.empty()) {
             result.mission_completed = true;
@@ -206,7 +169,6 @@ EngineResult ChatbotEngine::handle_message(
         check_achievements(user, result);
     }
 
-    // 10. Chama Gemini com contexto enriquecido
     std::string context = build_context(phone_id, user);
     std::string enriched = context.empty()
         ? message
@@ -225,7 +187,6 @@ EngineResult ChatbotEngine::handle_message(
         check_achievements(user, result);
 
     } catch (const std::exception& e) {
-        // 11. Modo offline: Gemini falhou
         std::println(stderr, "[Engine] Gemini offline: {}", e.what());
         result.reply = IntentClassifier::offline_response(Intent::HELP);
         if (result.reply.empty())
@@ -235,7 +196,6 @@ EngineResult ChatbotEngine::handle_message(
     return result;
 }
 
-// ── handle_location ───────────────────────────────────────────
 
 EngineResult ChatbotEngine::handle_location(
     const std::string& phone_id,
@@ -259,7 +219,6 @@ EngineResult ChatbotEngine::handle_location(
     return result;
 }
 
-// ── handle_donation ───────────────────────────────────────────
 
 EngineResult ChatbotEngine::handle_donation(
     const std::string& phone_id,
@@ -267,14 +226,12 @@ EngineResult ChatbotEngine::handle_donation(
 {
     auto user = db_.get_or_create_user(phone_id);
 
-    // Busca campanha para calcular multiplicador
     Campaign campaign;
     campaign.slug   = campaign_id;
     campaign.urgent = false;
     for (auto& c : db_.get_active_campaigns())
         if (c.slug == campaign_id) { campaign = c; break; }
 
-    // Calcula pontos com possível 2x URGENTE
     auto pts = gamification_.calculate_points(100u, campaign);
 
     Donation d;
@@ -290,7 +247,6 @@ EngineResult ChatbotEngine::handle_donation(
     user.points    = total;
     user.donations++;
 
-    // Verifica missões
     auto missions = gamification_.update_missions(user.id);
 
     EngineResult result;
@@ -320,7 +276,6 @@ EngineResult ChatbotEngine::handle_donation(
     return result;
 }
 
-// ── handle_qr_scan ────────────────────────────────────────────
 
 EngineResult ChatbotEngine::handle_qr_scan(
     const std::string& phone_id,
@@ -328,7 +283,6 @@ EngineResult ChatbotEngine::handle_qr_scan(
 {
     auto user = db_.get_or_create_user(phone_id);
 
-    // Busca ponto de coleta pelo QR token
     CollectionPoint matched_cp;
     bool found = false;
     for (auto& cp : db_.get_collection_points("")) {
@@ -366,7 +320,6 @@ EngineResult ChatbotEngine::handle_qr_scan(
     return result;
 }
 
-// ── handle_volunteer ──────────────────────────────────────────
 
 EngineResult ChatbotEngine::handle_volunteer(
     const std::string& phone_id,
@@ -401,7 +354,6 @@ EngineResult ChatbotEngine::handle_volunteer(
     return result;
 }
 
-// ── handle_gift_points ────────────────────────────────────────
 
 EngineResult ChatbotEngine::handle_gift_points(
     const std::string& from_phone,
@@ -420,7 +372,6 @@ EngineResult ChatbotEngine::handle_gift_points(
     return result;
 }
 
-// ── check_achievements ────────────────────────────────────────
 
 void ChatbotEngine::check_achievements(const UserProfile& user, EngineResult& out) {
     if (user.donations == 1)

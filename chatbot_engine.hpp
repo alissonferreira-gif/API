@@ -1,16 +1,4 @@
 #pragma once
-// ============================================================
-// AlissonAsk V0.7 — chatbot_engine.hpp  (substitui V0.5)
-// Orquestra todos os sistemas:
-//   - IntentClassifier (zero tokens para intenções conhecidas)
-//   - SentimentAnalyzer (escala para humano se frustrado)
-//   - GamificationEngine (missões, multiplicadores, streaks)
-//   - GeoLocation (ponto de coleta mais próximo)
-//   - RateLimiter (anti-spam por phone_id)
-//   - SQLiteDatabase (persistência real)
-//   - Modo offline (fallback sem Gemini)
-//   - Memória de usuário persistida
-// ============================================================
 
 #include "gemini_client.hpp"
 #include "conversation_manager.hpp"
@@ -25,7 +13,6 @@
 #include <cstdint>
 #include <optional>
 
-// Resultado de cada interação
 struct EngineResult {
     std::string reply;
 
@@ -55,31 +42,26 @@ public:
         IDatabase&         db
     );
 
-    // Processa mensagem de texto vinda do WhatsApp
     [[nodiscard]] EngineResult handle_message(
         const std::string& phone_id,
         const std::string& message
     );
 
-    // Processa localização enviada pelo usuário
     [[nodiscard]] EngineResult handle_location(
         const std::string& phone_id,
         double lat, double lng
     );
 
-    // Processa doação online (webhook PIX ou botão)
     [[nodiscard]] EngineResult handle_donation(
         const std::string& phone_id,
         const std::string& campaign_id
     );
 
-    // Processa scan de QR code de ponto de coleta
     [[nodiscard]] EngineResult handle_qr_scan(
         const std::string& phone_id,
         const std::string& qr_token
     );
 
-    // Processa cadastro de voluntário
     [[nodiscard]] EngineResult handle_volunteer(
         const std::string& phone_id,
         const std::string& full_name,
@@ -87,7 +69,6 @@ public:
         const std::string& available_days
     );
 
-    // Presentear pontos para amigo
     [[nodiscard]] EngineResult handle_gift_points(
         const std::string& from_phone,
         const std::string& to_phone,
@@ -105,19 +86,15 @@ private:
     GeoLocation          geo_;
     RateLimiter          rate_limiter_;
 
-    // Verifica e desbloqueia conquistas após cada ação
     void check_achievements(const UserProfile& user, EngineResult& out);
 
-    // Adiciona contexto de memória ao prompt do Gemini
     std::string build_context(const std::string& phone_id,
                                const UserProfile& user);
 
-    // Persiste fatos relevantes da conversa na memória do usuário
     void update_user_memory(const std::string& phone_id,
                              const std::string& message,
                              Intent intent);
 
-    // Escalona para atendente humano via webhook
     void escalate_to_human(const std::string& phone_id,
                             const std::string& message,
                             const std::string& reason);

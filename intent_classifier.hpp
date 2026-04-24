@@ -1,14 +1,4 @@
 #pragma once
-// ============================================================
-// AlissonAsk V0.7 — intent_classifier.hpp
-// Classificador de intenção LOCAL — zero tokens Gemini.
-// Identifica a intenção antes de chamar a IA, permitindo:
-//   - Respostas instantâneas para ações conhecidas
-//   - Modo offline funcional
-//   - Rate limiting por intenção
-//
-// Hash das keywords via asm_fnv1a_hash (Assembly x86-64).
-// ============================================================
 
 #include "asm_utils.hpp"
 #include <string>
@@ -42,7 +32,6 @@ public:
     [[nodiscard]] ClassificationResult classify(const std::string& message) const {
         const std::string lower = to_lower(message);
 
-        // Verifica cada grupo de palavras-chave
         for (const auto& rule : RULES_) {
             for (const char* kw : rule.keywords) {
                 if (!kw) break;
@@ -54,7 +43,6 @@ public:
         return { Intent::UNKNOWN, 0.0f, "" };
     }
 
-    // Retorna resposta offline para intenções conhecidas
     [[nodiscard]] static std::string offline_response(Intent intent) {
         switch (intent) {
         case Intent::DONATE_INTENT:
@@ -119,7 +107,6 @@ public:
         }
     }
 
-    // Retorna true se a intenção requer escalar para humano
     [[nodiscard]] static bool requires_human_escalation(Intent i) {
         return i == Intent::FRUSTRATION;
     }

@@ -1,9 +1,4 @@
 #pragma once
-// ============================================================
-// AlissonAsk V0.7 — sqlite_database.hpp
-// Implementação concreta de IDatabase usando SQLite3.
-// Dependência: sqlite3 (-lsqlite3)
-// ============================================================
 
 #include "idatabase.hpp"
 #include <sqlite3.h>
@@ -13,7 +8,6 @@
 #include <format>
 #include <chrono>
 
-// Macro para checar erros SQLite
 #define SQL_CHECK(rc, db) \
     if ((rc) != SQLITE_OK) \
         throw std::runtime_error(std::format("SQLite: {}", sqlite3_errmsg(db)))
@@ -32,10 +26,8 @@ public:
         if (db_) sqlite3_close(db_);
     }
 
-    // ── IDatabase interface ────────────────────────────────────
 
     UserProfile get_or_create_user(const std::string& phone_id) override {
-        // Tenta inserir (ignora se já existe)
         exec(std::format(
             "INSERT OR IGNORE INTO users(phone_id, name, level, points, donations) "
             "VALUES('{}','Usuário {}','🤝 Iniciante',0,0);",
@@ -63,7 +55,6 @@ public:
         exec(std::format(
             "UPDATE users SET points = points + {} WHERE id = {};",
             amount, user_id));
-        // Atualiza nível
         auto stmt = prepare(std::format(
             "SELECT points FROM users WHERE id = {};", user_id));
         uint32_t total = 0;
@@ -76,7 +67,6 @@ public:
             "UPDATE users SET level = '{}' WHERE id = {};",
             esc(lvl), user_id));
 
-        // Log de auditoria
         exec(std::format(
             "INSERT INTO audit_log(user_id,action,detail,ts) VALUES({},'add_points','{}+{}',{});",
             user_id, esc(reason), amount, now_unix()));
@@ -142,7 +132,6 @@ public:
             d.campaign_id == 0 ? "NULL," : std::format("{},", d.campaign_id),
             esc(d.type), d.points_earned, d.registered_at));
         int64_t id = sqlite3_last_insert_rowid(db_);
-        // Incrementa contador de doações do usuário
         exec(std::format(
             "UPDATE users SET donations = donations + 1 WHERE id = {};", d.user_id));
         return id;
@@ -215,7 +204,6 @@ public:
     }
 
     bool unlock_achievement(int32_t user_id, const std::string& slug) override {
-        // Retorna false se já desbloqueado
         auto check = prepare(std::format(
             "SELECT 1 FROM user_achievements WHERE user_id={} AND achievement_slug='{}';",
             user_id, esc(slug)));
@@ -238,9 +226,7 @@ public:
         return static_cast<int32_t>(sqlite3_last_insert_rowid(db_));
     }
 
-    // ── Extras V0.7 ───────────────────────────────────────────
 
-    // Persistir memória de usuário (para contexto do Gemini)
     void save_user_memory(const std::string& phone_id,
                           const std::string& memory_json) {
         exec(std::format(
@@ -262,7 +248,6 @@ public:
         return mem;
     }
 
-    // Missões semanais
     struct WeeklyMission {
         int32_t     id;
         std::string description;
@@ -290,7 +275,6 @@ public:
         return result;
     }
 
-    // Exportar CSV de doações do mês
     std::string export_donations_csv(int year, int month) {
         std::string csv = "id,user_phone,campaign,type,points,date\n";
         auto stmt = prepare(std::format(
@@ -302,7 +286,6 @@ public:
             "AND   strftime('%m','{}',d.registered_at,'unixepoch')='{:02d}';",
             "", year, "", month));
 
-        // Simpler: filter in C++
         sqlite3_finalize(stmt);
         stmt = prepare(
             "SELECT d.rowid, u.phone_id, COALESCE(c.name,'N/A'), d.type, "
@@ -313,7 +296,6 @@ public:
 
         while (sqlite3_step(stmt) == SQLITE_ROW) {
             int64_t ts = sqlite3_column_int64(stmt, 5);
-            // Filtra por ano/mês
             std::time_t t = static_cast<std::time_t>(ts);
             std::tm* tm_  = std::gmtime(&t);
             if (!tm_) continue;
@@ -335,7 +317,6 @@ public:
         return csv;
     }
 
-    // Auditoria de ações admin
     void log_admin_action(const std::string& admin_id,
                           const std::string& action,
                           const std::string& detail = "") {
@@ -352,7 +333,6 @@ private:
             std::chrono::system_clock::now().time_since_epoch()).count();
     }
 
-    // Escapa aspas simples
     static std::string esc(const std::string& s) {
         std::string out;
         out.reserve(s.size() + 4);

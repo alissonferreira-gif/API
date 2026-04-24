@@ -1,8 +1,3 @@
-// ============================================================
-//  AlissonAsk V0.5 — GeminiClient Implementation
-//  Criado e Integrado por: Álisson Ferreira Dos Santos
-//  Arquivo: src/gemini_client.cpp
-// ============================================================
 
 #include "gemini_client.hpp"
 
@@ -15,14 +10,12 @@
 
 using json = nlohmann::json;
 
-// ── cURL write callback ───────────────────────────────────────
 
 static size_t write_cb(char* ptr, size_t sz, size_t nmemb, void* udata) {
     static_cast<std::string*>(udata)->append(ptr, sz * nmemb);
     return sz * nmemb;
 }
 
-// ── Construtor / Destrutor ────────────────────────────────────
 
 GeminiClient::GeminiClient(std::string api_key, Config cfg)
     : api_key_(std::move(api_key)), cfg_(std::move(cfg))
@@ -37,20 +30,16 @@ GeminiClient::~GeminiClient() {
     curl_global_cleanup();
 }
 
-// ── Monta payload JSON para a API do Gemini ───────────────────
 
 std::string GeminiClient::build_payload(const std::vector<Message>& history) const {
     json body;
 
-    // System instruction (separado do histórico na API Gemini)
     if (!cfg_.system_prompt.empty()) {
         body["system_instruction"]["parts"][0]["text"] = cfg_.system_prompt;
     }
 
-    // Histórico de mensagens
     json contents = json::array();
 
-    // Gemini exige iniciar com role "user" — injeta turno dummy se necessário
     contents.push_back({
         { "role",  "user"  },
         { "parts", json::array({ { { "text", "[início da conversa]" } } }) }
@@ -77,7 +66,6 @@ std::string GeminiClient::build_payload(const std::vector<Message>& history) con
     return body.dump();
 }
 
-// ── HTTP POST via libcurl ─────────────────────────────────────
 
 std::string GeminiClient::http_post(const std::string& url, const std::string& body) {
     CURL* curl = static_cast<CURL*>(curl_);
@@ -110,12 +98,10 @@ std::string GeminiClient::http_post(const std::string& url, const std::string& b
     return response;
 }
 
-// ── Parseia resposta JSON ─────────────────────────────────────
 
 ChatResponse GeminiClient::parse_response(const std::string& raw) const {
     auto j = json::parse(raw);
 
-    // Verifica filtro de segurança
     auto& candidate = j["candidates"][0];
     std::string finish = candidate.value("finishReason", "STOP");
     if (finish == "SAFETY")
@@ -133,7 +119,6 @@ ChatResponse GeminiClient::parse_response(const std::string& raw) const {
     return resp;
 }
 
-// ── Método público chat() ─────────────────────────────────────
 
 ChatResponse GeminiClient::chat(const std::vector<Message>& history) {
     const std::string url = std::format(

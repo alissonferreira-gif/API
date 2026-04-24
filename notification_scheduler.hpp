@@ -1,13 +1,4 @@
 #pragma once
-// ============================================================
-// AlissonAsk V0.7 — notification_scheduler.hpp
-// Agendador de notificações proativas:
-//   - Lembrete inteligente (30 dias sem doação + nova campanha)
-//   - Aniversário do doador (+bônus)
-//   - Resumo mensal (dia 1º de cada mês)
-//   - Alerta admin: campanha sem doação em 48h
-// Roda em thread separada (via ThreadPool).
-// ============================================================
 
 #include "idatabase.hpp"
 #include "thread_pool.hpp"
@@ -19,10 +10,8 @@
 #include <print>
 #include <format>
 
-// Callback para enviar mensagem WhatsApp
 using SendMessageFn = std::function<void(const std::string& phone_id,
                                           const std::string& message)>;
-// Callback para alerta ao admin
 using AdminAlertFn  = std::function<void(const std::string& subject,
                                           const std::string& body)>;
 
@@ -37,7 +26,6 @@ public:
           alert_(std::move(alert_fn))
     {}
 
-    // Inicia o scheduler em background (checa a cada hora)
     void start() {
         running_ = true;
         pool_.submit([this] { scheduler_loop(); });
@@ -45,8 +33,6 @@ public:
 
     void stop() { running_ = false; }
 
-    // ── Lembrete inteligente ───────────────────────────────────
-    // Chamado quando uma nova campanha é criada
     void on_new_campaign(const Campaign& campaign,
                           const std::vector<std::string>& all_phones)
     {
@@ -76,13 +62,11 @@ public:
         }
     }
 
-    // ── Alerta de campanha sem doações ────────────────────────
     void check_stale_campaigns() {
         auto campaigns = db_.get_active_campaigns();
         int64_t now = epoch_s();
         for (auto& c : campaigns) {
             if (c.total_donated == 0) {
-                // Sem doações — alerta admin (simplificado: não temos created_at aqui)
                 alert_(
                     std::format("⚠️ Campanha sem doações: {}", c.name),
                     std::format("A campanha '{}' (slug: {}) não recebeu nenhuma doação.\n"
@@ -100,7 +84,6 @@ private:
 
     void scheduler_loop() {
         while (running_) {
-            // Dorme 1 hora entre verificações
             for (int i = 0; i < 3600 && running_; ++i)
                 std::this_thread::sleep_for(std::chrono::seconds(1));
 
@@ -108,7 +91,6 @@ private:
 
             try {
                 check_stale_campaigns();
-                // Aqui você pode adicionar: check_monthly_summaries(), check_birthdays()
             } catch (const std::exception& e) {
                 std::println(stderr, "[Scheduler] Erro: {}", e.what());
             }

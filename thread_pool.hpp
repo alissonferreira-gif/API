@@ -1,9 +1,4 @@
 #pragma once
-// ============================================================
-// AlissonAsk V0.7 — thread_pool.hpp
-// Thread pool com fila de trabalho.
-// Padrão: 4 threads (ajustável via ctor).
-// ============================================================
 
 #include <thread>
 #include <mutex>
@@ -36,7 +31,6 @@ public:
             if (t.joinable()) t.join();
     }
 
-    // Submete uma tarefa e retorna um future com o resultado
     template<typename F, typename... Args>
     auto submit(F&& f, Args&&... args)
         -> std::future<std::invoke_result_t<F, Args...>>
