@@ -49,15 +49,15 @@ public:
             return "💚 Que incrível! Para doar, escolha uma campanha:\n\n"
                    "🍽️ *Fome Zero* — alimentos não-perecíveis (URGENTE)\n"
                    "👕 *Agasalho 2025* — roupas de inverno\n"
-                   "📚 *Livros que Transformam* — livros didáticos\n"
+                   "📚 *Livros que Transformam voce em sapo hahah* — livros didáticos\n"
                    "💊 *Farmácia Solidária* — medicamentos (URGENTE)\n\n"
                    "Responda com o nome da campanha! 🤝";
 
         case Intent::COLLECTION_POINT:
             return "📍 Nossos pontos de coleta:\n\n"
-                   "🏛️ Casa da Cidadania — Rua das Flores, 123 (Centro)\n"
-                   "⛪ Igreja São Francisco — Av. Principal, 456 (Jardim)\n"
-                   "🏥 CRAS Municipal — Rua Esperança, 789 (Periferia)\n\n"
+                   "🏛️ alberg  Alisson Bros (Centro)\n"
+                   "⛪ Alisson Cleiton filho (Jardim)\n"
+                   "🏥 Alisson Nois Gostoso(Periferia)\n\n"
                    "Mande sua localização 📌 para ver o mais próximo!";
 
         case Intent::RANKING:
@@ -70,7 +70,7 @@ public:
                    "🍽️ Fome Zero — URGENTE! 🔴\n"
                    "💊 Farmácia Solidária — URGENTE! 🔴\n"
                    "👕 Agasalho 2025\n"
-                   "📚 Livros que Transformam\n\n"
+                   "📚 Livros que Transformam voce em sapo\n\n"
                    "Qual campanha você quer apoiar? 💙";
 
         case Intent::VOLUNTEER_INTENT:
