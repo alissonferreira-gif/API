@@ -2,7 +2,7 @@
 #include "chatbot_engine.hpp"
 #include <format>
 #include <chrono>
-#include <print>
+#include "print_compat.hpp"
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
@@ -80,7 +80,7 @@ void ChatbotEngine::escalate_to_human(
     db_.log_admin_action("system", "escalate_human",
         std::format("phone={} reason={} msg={}", phone_id, reason, message));
 
-    std::println("[Escalation] {} → humano. Razão: {}", phone_id, reason);
+    println("[Escalation] {} → humano. Razão: {}", phone_id, reason);
 }
 
 
@@ -186,7 +186,7 @@ EngineResult ChatbotEngine::handle_message(
         check_achievements(user, result);
 
     } catch (const std::exception& e) {
-        std::println(stderr, "[Engine] Gemini offline: {}", e.what());
+        println(stderr, "[Engine] Gemini offline: {}", e.what());
         result.reply = IntentClassifier::offline_response(Intent::HELP);
         if (result.reply.empty())
             result.reply = "🤖 Estou em manutenção no momento. Tente novamente em breve! 🙏";

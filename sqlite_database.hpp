@@ -248,15 +248,7 @@ public:
         return mem;
     }
 
-    struct WeeklyMission {
-        int32_t     id;
-        std::string description;
-        uint32_t    target;
-        uint32_t    bonus_points;
-        int64_t     expires_at;
-    };
-
-    std::vector<WeeklyMission> get_active_missions() {
+    std::vector<WeeklyMission> get_active_missions() override {
         std::vector<WeeklyMission> result;
         int64_t now = now_unix();
         auto stmt = prepare(std::format(
