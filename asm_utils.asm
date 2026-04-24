@@ -116,12 +116,16 @@ asm_training_area_store:
     cmova   rsi, rcx
 
     lea     r9, [rel training_area + r8]
-    mov     rcx, rsi
+    mov     r10, rdi
+    mov     r11, rsi
+    mov     rdi, r9
+    mov     rcx, r11
+    mov     rsi, r10
     rep     movsb
 
-    add     r8, rsi
+    add     r8, r11
     mov     [rel training_area_size_v], r8
-    mov     rax, rsi
+    mov     rax, r11
     ret
 
 .store_none:
