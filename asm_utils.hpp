@@ -1,5 +1,5 @@
 #pragma once
-
+// baixa NASM pra rodar isso aqui e impotante baixar NASM
 #include <cstdint>
 #include <cstddef>
 #include <string>
