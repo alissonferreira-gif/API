@@ -17,7 +17,8 @@ public:
         std::string  system_prompt;
     };
 
-    explicit ConversationManager(GeminiClient& client, Config cfg = {});
+    explicit ConversationManager(GeminiClient& client, Config cfg);
+    explicit ConversationManager(GeminiClient& client);
 
     [[nodiscard]] ChatResponse reply(
         const std::string& user_id,

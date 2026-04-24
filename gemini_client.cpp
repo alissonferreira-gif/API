@@ -7,6 +7,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <format>
+#include <algorithm>
 
 using json = nlohmann::json;
 
@@ -17,13 +18,24 @@ static size_t write_cb(char* ptr, size_t sz, size_t nmemb, void* udata) {
 }
 
 
-GeminiClient::GeminiClient(std::string api_key, Config cfg)
-    : api_key_(std::move(api_key)), cfg_(std::move(cfg))
+GeminiClient::GeminiClient(std::vector<std::string> api_keys, Config cfg)
+    : key_mgr_(std::move(api_keys)),
+      cache_(cfg.cache_ttl_min),
+      cfg_(std::move(cfg))
 {
     curl_global_init(CURL_GLOBAL_DEFAULT);
     curl_ = curl_easy_init();
     if (!curl_) throw std::runtime_error("Falha ao inicializar libcurl");
 }
+
+GeminiClient::GeminiClient(std::vector<std::string> api_keys)
+    : GeminiClient(std::move(api_keys), Config{}) {}
+
+GeminiClient::GeminiClient(std::string api_key, Config cfg)
+    : GeminiClient(std::vector<std::string>{ std::move(api_key) }, std::move(cfg)) {}
+
+GeminiClient::GeminiClient(std::string api_key)
+    : GeminiClient(std::move(api_key), Config{}) {}
 
 GeminiClient::~GeminiClient() {
     if (curl_) curl_easy_cleanup(static_cast<CURL*>(curl_));
@@ -121,11 +133,34 @@ ChatResponse GeminiClient::parse_response(const std::string& raw) const {
 
 
 ChatResponse GeminiClient::chat(const std::vector<Message>& history) {
+    const auto user_msg = last_user_message(history);
+    if (!user_msg.empty()) {
+        if (auto cached = cache_.get(user_msg); !cached.empty()) {
+            ChatResponse resp;
+            resp.content = std::move(cached);
+            resp.finish_reason = "STOP";
+            resp.from_cache = true;
+            return resp;
+        }
+    }
+
     const std::string url = std::format(
         "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
-        cfg_.model, api_key_
+        cfg_.model, key_mgr_.current()
     );
     std::string payload = build_payload(history);
     std::string raw     = http_post(url, payload);
-    return parse_response(raw);
+    ChatResponse resp   = parse_response(raw);
+
+    if (!user_msg.empty() && !resp.content.empty())
+        cache_.set(user_msg, resp.content);
+
+    return resp;
+}
+
+std::string GeminiClient::last_user_message(const std::vector<Message>& history) {
+    auto it = std::find_if(history.rbegin(), history.rend(), [](const Message& m) {
+        return m.role == "user";
+    });
+    return (it == history.rend()) ? std::string{} : it->content;
 }

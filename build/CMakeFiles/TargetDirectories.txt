@@ -1,0 +1,3 @@
+/home/runner/work/API/API/build/CMakeFiles/AlissonAsk.dir
+/home/runner/work/API/API/build/CMakeFiles/edit_cache.dir
+/home/runner/work/API/API/build/CMakeFiles/rebuild_cache.dir

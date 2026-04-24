@@ -1,0 +1,30 @@
+#pragma once
+
+#include <cstdio>
+#include <format>
+#include <string>
+#include <utility>
+
+namespace std {
+
+template <class... Args>
+inline void print(format_string<Args...> fmt, Args&&... args) {
+    std::string out = std::format(fmt, std::forward<Args>(args)...);
+    std::fwrite(out.data(), 1, out.size(), stdout);
+}
+
+template <class... Args>
+inline void println(format_string<Args...> fmt, Args&&... args) {
+    std::string out = std::format(fmt, std::forward<Args>(args)...);
+    out.push_back('\n');
+    std::fwrite(out.data(), 1, out.size(), stdout);
+}
+
+template <class... Args>
+inline void println(std::FILE* stream, format_string<Args...> fmt, Args&&... args) {
+    std::string out = std::format(fmt, std::forward<Args>(args)...);
+    out.push_back('\n');
+    std::fwrite(out.data(), 1, out.size(), stream);
+}
+
+} // namespace std

@@ -48,9 +48,11 @@ public:
         int          cache_ttl_min = 60;
     };
 
-    explicit GeminiClient(std::vector<std::string> api_keys, Config cfg = {});
+    explicit GeminiClient(std::vector<std::string> api_keys, Config cfg);
+    explicit GeminiClient(std::vector<std::string> api_keys);
 
-    explicit GeminiClient(std::string api_key, Config cfg = {});
+    explicit GeminiClient(std::string api_key, Config cfg);
+    explicit GeminiClient(std::string api_key);
 
     ~GeminiClient();
 
