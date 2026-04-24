@@ -14,7 +14,7 @@
 #include <iostream>
 #include <string>
 #include <cstdlib>
-#include <print>
+#include "print_compat.hpp"
 #include <format>
 
 using json = nlohmann::json;
@@ -68,18 +68,18 @@ Finalize com pergunta ou call-to-action.
 
 
 static void run_demo(ChatbotEngine& engine) {
-    std::println("╔══════════════════════════════════════════╗");
-    std::println("║  AlissonAsk V0.7 — Modo Demo Terminal   ║");
-    std::println("║  Criado por: Álisson Ferreira Dos Santos║");
-    std::println("║  SQLite | Assembly | ThreadPool | IA    ║");
-    std::println("╚══════════════════════════════════════════╝");
-    std::println("Formato: <+numero> <mensagem>");
-    std::println("Especiais:");
-    std::println("  <+numero> !loc <lat> <lng>     → ponto de coleta próximo");
-    std::println("  <+numero> !doar <campaign>     → doação online");
-    std::println("  <+numero> !qr <token>          → scan QR code");
-    std::println("  <+numero> !presentear <+dest> <pts> → presentear pontos");
-    std::println("Digite 'sair' para encerrar.\n");
+    println("╔══════════════════════════════════════════╗");
+    println("║  AlissonAsk V0.7 — Modo Demo Terminal   ║");
+    println("║  Criado por: Álisson Ferreira Dos Santos║");
+    println("║  SQLite | Assembly | ThreadPool | IA    ║");
+    println("╚══════════════════════════════════════════╝");
+    println("Formato: <+numero> <mensagem>");
+    println("Especiais:");
+    println("  <+numero> !loc <lat> <lng>     → ponto de coleta próximo");
+    println("  <+numero> !doar <campaign>     → doação online");
+    println("  <+numero> !qr <token>          → scan QR code");
+    println("  <+numero> !presentear <+dest> <pts> → presentear pontos");
+    println("Digite 'sair' para encerrar.\n");
 
     std::string line;
     while (std::getline(std::cin, line)) {
@@ -87,7 +87,7 @@ static void run_demo(ChatbotEngine& engine) {
 
         auto sep = line.find(' ');
         if (sep == std::string::npos) {
-            std::println("[!] Formato: <+numero> <mensagem>");
+            println("[!] Formato: <+numero> <mensagem>");
             continue;
         }
 
@@ -95,7 +95,7 @@ static void run_demo(ChatbotEngine& engine) {
         std::string content = line.substr(sep + 1);
 
         try {
-            std::print("[{}] ", phone);
+            print("[{}] ", phone);
             EngineResult result;
 
             if (content.starts_with("!loc ")) {
@@ -118,23 +118,23 @@ static void run_demo(ChatbotEngine& engine) {
                 result = engine.handle_message(phone, content);
             }
 
-            std::println("\n[AlissonAsk → {}]:\n{}", phone, result.reply);
-            std::println("[Pts: {} | Nível: {} | Intenção: {}]",
+            println("\n[AlissonAsk → {}]:\n{}", phone, result.reply);
+            println("[Pts: {} | Nível: {} | Intenção: {}]",
                 result.total_points, result.level,
                 static_cast<int>(result.detected_intent));
 
             if (result.achievement_unlocked)
-                std::println("🏆 CONQUISTA: {}", result.achievement_name);
+                println("🏆 CONQUISTA: {}", result.achievement_name);
             if (result.mission_completed)
-                std::println("🎯 MISSÃO: {} +{}pts", result.mission_name, result.mission_bonus);
+                println("🎯 MISSÃO: {} +{}pts", result.mission_name, result.mission_bonus);
             if (result.rate_limited)
-                std::println("⛔ RATE LIMITED");
+                println("⛔ RATE LIMITED");
             if (result.escalated_to_human)
-                std::println("🆘 ESCALADO PARA HUMANO");
-            std::println();
+                println("🆘 ESCALADO PARA HUMANO");
+            println();
 
         } catch (const std::exception& e) {
-            std::println("\n[ERRO] {}", e.what());
+            println("\n[ERRO] {}", e.what());
         }
     }
 }
@@ -163,7 +163,7 @@ static void run_server(ChatbotEngine&       engine,
                 auto wm = WhatsAppClient::parse_webhook(body);
                 if (!wm.valid) return;
 
-                std::println("[Webhook] De: {} | Msg: {}", wm.from, wm.text);
+                println("[Webhook] De: {} | Msg: {}", wm.from, wm.text);
 
                 EngineResult result;
 
@@ -188,7 +188,7 @@ static void run_server(ChatbotEngine&       engine,
                         result.mission_name, result.mission_bonus));
 
             } catch (const std::exception& e) {
-                std::println(stderr, "[Webhook ERRO] {}", e.what());
+                println(stderr, "[Webhook ERRO] {}", e.what());
             }
         });
 
@@ -270,19 +270,19 @@ static void run_server(ChatbotEngine&       engine,
         res.set_content("{\"status\":\"ok\",\"version\":\"0.7\"}", "application/json");
     });
 
-    std::println("╔══════════════════════════════════════════╗");
-    std::println("║  AlissonAsk V0.7 — Servidor WhatsApp    ║");
-    std::println("║  Porta: 8080 | ThreadPool: {} threads   ║",
+    println("╔══════════════════════════════════════════╗");
+    println("║  AlissonAsk V0.7 — Servidor WhatsApp    ║");
+    println("║  Porta: 8080 | ThreadPool: {} threads   ║",
         std::thread::hardware_concurrency());
-    std::println("║  SQLite | Assembly | IA + Offline mode  ║");
-    std::println("╚══════════════════════════════════════════╝");
-    std::println("Endpoints:");
-    std::println("  POST /webhook         → mensagens WhatsApp");
-    std::println("  POST /webhook/pix     → confirmação PIX");
-    std::println("  POST /webhook/qr      → scan QR code");
-    std::println("  GET  /admin/csv/:y/:m → exportar CSV");
-    std::println("  GET  /admin/ranking   → top 20");
-    std::println("  GET  /health          → health check\n");
+    println("║  SQLite | Assembly | IA + Offline mode  ║");
+    println("╚══════════════════════════════════════════╝");
+    println("Endpoints:");
+    println("  POST /webhook         → mensagens WhatsApp");
+    println("  POST /webhook/pix     → confirmação PIX");
+    println("  POST /webhook/qr      → scan QR code");
+    println("  GET  /admin/csv/:y/:m → exportar CSV");
+    println("  GET  /admin/ranking   → top 20");
+    println("  GET  /health          → health check\n");
 
     svr.listen("0.0.0.0", 8080);
 }
@@ -298,9 +298,9 @@ int main(int argc, char* argv[]) {
         }
         if (keys.empty()) {
             keys.push_back(require_env("GEMINI_API_KEY"));
-            std::println("[Aviso] Usando GEMINI_API_KEY legada. Configure GEMINI_KEY_1..10.");
+            println("[Aviso] Usando GEMINI_API_KEY legada. Configure GEMINI_KEY_1..10.");
         } else {
-            std::println("[Keys] {} keys | Capacidade: {} req/dia",
+            println("[Keys] {} keys | Capacidade: {} req/dia",
                 keys.size(), keys.size() * 1500);
         }
 
@@ -320,10 +320,10 @@ int main(int argc, char* argv[]) {
 
         std::string db_path = optional_env("DB_PATH", "alisonask.db");
         SQLiteDatabase db(db_path);
-        std::println("[DB] SQLite em: {}", db_path);
+        println("[DB] SQLite em: {}", db_path);
 
         ThreadPool pool;
-        std::println("[ThreadPool] {} threads", pool.thread_count());
+        println("[ThreadPool] {} threads", pool.thread_count());
 
         ChatbotEngine engine(gemini, conv, db);
 
@@ -343,7 +343,7 @@ int main(int argc, char* argv[]) {
                     wa.send_text(phone, msg);
                 },
                 [](const std::string& subj, const std::string& body) {
-                    std::println("[Alert] {}: {}", subj, body);
+                    println("[Alert] {}: {}", subj, body);
                 }
             );
             scheduler.start();
@@ -355,7 +355,7 @@ int main(int argc, char* argv[]) {
         }
 
     } catch (const std::exception& e) {
-        std::println(stderr, "[FATAL] {}", e.what());
+        println(stderr, "[FATAL] {}", e.what());
         return EXIT_FAILURE;
     }
 

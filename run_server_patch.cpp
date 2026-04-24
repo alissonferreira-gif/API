@@ -20,7 +20,7 @@ static void run_server(ChatbotEngine& engine, WhatsAppClient& wa,
         auto wm = WhatsAppClient::parse_webhook(req.body);
         if (!wm.valid) { res.status = 200; return; }
 
-        std::println("[Webhook] De: {} | Msg: {}", wm.from, wm.text);
+        println("[Webhook] De: {} | Msg: {}", wm.from, wm.text);
 
         try {
             auto result = engine.handle_message(wm.from, wm.text);
@@ -32,18 +32,18 @@ static void run_server(ChatbotEngine& engine, WhatsAppClient& wa,
                     result.achievement_name, result.total_points, result.level));
             }
         } catch (const std::exception& e) {
-            std::println("[ERRO] {}", e.what());
+            println("[ERRO] {}", e.what());
         }
 
         res.status = 200;
     });
 
-    std::println("╔══════════════════════════════════════════════╗");
-    std::println("║   AlissonAsk V0.6 — Servidor Completo        ║");
-    std::println("║   Porta: 8080                                 ║");
-    std::println("║   /webhook        → WhatsApp                  ║");
-    std::println("║   /admin/*        → Painel Administrativo     ║");
-    std::println("╚══════════════════════════════════════════════╝");
+    println("╔══════════════════════════════════════════════╗");
+    println("║   AlissonAsk V0.6 — Servidor Completo        ║");
+    println("║   Porta: 8080                                 ║");
+    println("║   /webhook        → WhatsApp                  ║");
+    println("║   /admin/*        → Painel Administrativo     ║");
+    println("╚══════════════════════════════════════════════╝");
     svr.listen("0.0.0.0", 8080);
 }
 

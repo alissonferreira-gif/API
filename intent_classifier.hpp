@@ -115,10 +115,10 @@ private:
     struct Rule {
         Intent intent;
         float  base_confidence;
-        const char* keywords[12];
+        const char* keywords[13];
     };
 
-    static constexpr std::array<Rule, 11> RULES_ = {{
+    static constexpr std::array<Rule, 12> RULES_ = {{
         { Intent::DONATE_INTENT, 0.9f,
           {"quero doar","como doar","ajudar","fazer doação","contribuir",
            "dar uma doação","quero contribuir","doação","doe",nullptr} },

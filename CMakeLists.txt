@@ -55,6 +55,10 @@ pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 target_include_directories(AlissonAsk PRIVATE ${SQLITE3_INCLUDE_DIRS})
 target_link_libraries(AlissonAsk PRIVATE ${SQLITE3_LIBRARIES})
 
+pkg_check_modules(HTTPLIB REQUIRED cpp-httplib)
+target_compile_options(AlissonAsk PRIVATE ${HTTPLIB_CFLAGS_OTHER})
+target_link_libraries(AlissonAsk PRIVATE ${HTTPLIB_LIBRARIES})
+
 find_package(ZLIB REQUIRED)
 target_link_libraries(AlissonAsk PRIVATE ZLIB::ZLIB)
 

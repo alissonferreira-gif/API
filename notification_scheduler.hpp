@@ -7,7 +7,7 @@
 #include <chrono>
 #include <thread>
 #include <atomic>
-#include <print>
+#include "print_compat.hpp"
 #include <format>
 
 using SendMessageFn = std::function<void(const std::string& phone_id,
@@ -92,7 +92,7 @@ private:
             try {
                 check_stale_campaigns();
             } catch (const std::exception& e) {
-                std::println(stderr, "[Scheduler] Erro: {}", e.what());
+                println(stderr, "[Scheduler] Erro: {}", e.what());
             }
         }
     }

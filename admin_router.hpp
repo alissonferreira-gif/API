@@ -3,7 +3,7 @@
 #include "idatabase.hpp"
 #include <httplib.h>
 #include <nlohmann/json.hpp>
-#include <print>
+#include "print_compat.hpp"
 #include <format>
 #include <string>
 #include <chrono>
@@ -45,7 +45,7 @@ public:
                 });
 
             send_json(res, resp);
-            std::println("[Admin] GET /relatorio");
+            println("[Admin] GET /relatorio");
         });
 
         svr.Get("/admin/campanhas", [this](const httplib::Request& req, httplib::Response& res) {
@@ -63,7 +63,7 @@ public:
                 });
 
             send_json(res, { { "campanhas", arr } });
-            std::println("[Admin] GET /campanhas");
+            println("[Admin] GET /campanhas");
         });
 
         svr.Post("/admin/campanhas", [this](const httplib::Request& req, httplib::Response& res) {
@@ -85,7 +85,7 @@ public:
             };
 
             send_json(res, resp, 201);
-            std::println("[Admin] POST /campanhas → {}",
+            println("[Admin] POST /campanhas → {}",
                          (*body)["nome"].get<std::string>());
         });
 
@@ -130,7 +130,7 @@ public:
             };
 
             send_json(res, resp, 201);
-            std::println("[Admin] POST /doacao → {} | R$ {:.2f} | {} pts",
+            println("[Admin] POST /doacao → {} | R$ {:.2f} | {} pts",
                          phone, valor, d.points_earned);
         });
 
@@ -152,7 +152,7 @@ public:
                 });
 
             send_json(res, { { "ranking", arr }, { "total", static_cast<int>(arr.size()) } });
-            std::println("[Admin] GET /ranking (top {})", limit);
+            println("[Admin] GET /ranking (top {})", limit);
         });
 
         svr.Get("/admin/coletas", [this](const httplib::Request& req, httplib::Response& res) {
@@ -171,7 +171,7 @@ public:
                 });
 
             send_json(res, { { "pontos_coleta", arr } });
-            std::println("[Admin] GET /coletas");
+            println("[Admin] GET /coletas");
         });
 
         svr.Get("/admin/health", [](const httplib::Request&, httplib::Response& res) {
@@ -182,14 +182,14 @@ public:
             });
         });
 
-        std::println("[AdminRouter] Rotas registradas:");
-        std::println("  GET  /admin/health");
-        std::println("  GET  /admin/relatorio");
-        std::println("  GET  /admin/campanhas");
-        std::println("  POST /admin/campanhas");
-        std::println("  POST /admin/doacao");
-        std::println("  GET  /admin/ranking");
-        std::println("  GET  /admin/coletas");
+        println("[AdminRouter] Rotas registradas:");
+        println("  GET  /admin/health");
+        println("  GET  /admin/relatorio");
+        println("  GET  /admin/campanhas");
+        println("  POST /admin/campanhas");
+        println("  POST /admin/doacao");
+        println("  GET  /admin/ranking");
+        println("  GET  /admin/coletas");
     }
 
 private:
@@ -200,7 +200,7 @@ private:
         auto auth = req.get_header_value("Authorization");
         if (auth == std::format("Bearer {}", token_)) return true;
         send_error(res, 401, "Token inválido ou ausente.");
-        std::println("[Admin] ⚠️  Acesso não autorizado de {}", req.remote_addr);
+        println("[Admin] ⚠️  Acesso não autorizado de {}", req.remote_addr);
         return false;
     }
 

@@ -7,6 +7,9 @@ using Clock = std::chrono::steady_clock;
 ConversationManager::ConversationManager(GeminiClient& client, Config cfg)
     : client_(client), cfg_(std::move(cfg)) {}
 
+ConversationManager::ConversationManager(GeminiClient& client)
+    : ConversationManager(client, Config{}) {}
+
 
 ConversationManager::Session&
 ConversationManager::get_or_create(const std::string& user_id) {
