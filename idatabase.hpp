@@ -32,7 +32,7 @@ struct Campaign {
 
     [[nodiscard]] std::string progress_bar() const {
         int pct   = progress_pct();
-        int filled = pct / 20;          // 5 blocos = 100%
+        int filled = pct / 20;
         std::string bar;
         for (int i = 0; i < 5; ++i)
             bar += (i < filled) ? "🟩" : "⬜";
@@ -45,15 +45,15 @@ struct CollectionPoint {
     std::string name;
     std::string address;
     std::string neighborhood;
-    double      lat = 0.0;     // latitude (para rota)
-    double      lng = 0.0;     // longitude
-    std::string qr_code;       // token único para registro físico
+    double      lat = 0.0;
+    double      lng = 0.0;
+    std::string qr_code;
 };
 
 struct Donation {
     int32_t     user_id       = 0;
     int32_t     campaign_id   = 0;
-    std::string type;           // "physical" | "online" | "qr_scan"
+    std::string type;
     uint32_t    points_earned  = 0;
     int64_t     registered_at  = 0;
 };

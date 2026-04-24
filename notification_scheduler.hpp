@@ -45,7 +45,7 @@ public:
                 if (!donations.empty()) {
                     int64_t last_ts = donations[0].registered_at;
                     int64_t now_s   = epoch_s();
-                    should_notify   = (now_s - last_ts) > (30 * 86400); // 30 dias
+                    should_notify   = (now_s - last_ts) > (30 * 86400);
                 }
 
                 if (should_notify) {

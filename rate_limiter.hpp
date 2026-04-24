@@ -26,10 +26,10 @@ public:
             dq.pop_front();
 
         if (dq.size() >= max_)
-            return true;   // bloqueado
+            return true;
 
         dq.push_back(now);
-        return false;      // permitido
+        return false;
     }
 
     [[nodiscard]] uint32_t remaining(const std::string& phone_id) {

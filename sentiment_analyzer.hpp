@@ -9,14 +9,14 @@ enum class Sentiment : uint8_t {
     POSITIVE,
     NEUTRAL,
     NEGATIVE,
-    FRUSTRATED,   // escalar para humano
+    FRUSTRATED,
 };
 
 struct SentimentResult {
     Sentiment   sentiment    = Sentiment::NEUTRAL;
-    float       score        = 0.0f;   // -1.0 (muito negativo) a +1.0 (muito positivo)
-    bool        escalate     = false;  // deve chamar atendente humano?
-    std::string reason;                // palavra que disparou
+    float       score        = 0.0f;
+    bool        escalate     = false;
+    std::string reason;
 };
 
 class SentimentAnalyzer {

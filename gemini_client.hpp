@@ -10,7 +10,7 @@
 
 
 struct Message {
-    std::string role;      // "user" | "assistant"
+    std::string role;
     std::string content;
 };
 
@@ -19,7 +19,7 @@ struct ChatResponse {
     std::string  finish_reason;
     int_fast32_t input_tokens  = 0;
     int_fast32_t output_tokens = 0;
-    bool         from_cache    = false;  // true = economizou tokens
+    bool         from_cache    = false;
 };
 
 
@@ -45,7 +45,7 @@ public:
         int_fast32_t max_tokens    = 512;
         int_fast32_t timeout_sec   = 20;
         std::string  system_prompt;
-        int          cache_ttl_min = 60;   // tempo de vida do cache em minutos
+        int          cache_ttl_min = 60;
     };
 
     explicit GeminiClient(std::vector<std::string> api_keys, Config cfg = {});

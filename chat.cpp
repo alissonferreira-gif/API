@@ -10,11 +10,11 @@
 #include <random>
 #include <sstream>
 #include <chrono>
-#include <immintrin.h>   // AVX2 + FMA
+#include <immintrin.h>
 
-static constexpr int   VSIZE = 64;   // tamanho do vocabulário (múltiplo de 8)
-static constexpr int   HSIZE = 32;   // neurônios ocultos      (múltiplo de 8)
-static constexpr int   NINT  = 10;   // número de intenções
+static constexpr int   VSIZE = 64;
+static constexpr int   HSIZE = 32;
+static constexpr int   NINT  = 10;
 static constexpr float LR    = 0.04f;
 static constexpr int   EPOCH = 5000;
 
@@ -119,9 +119,9 @@ static const char* RESPONSES[][5] = {
 };
 static constexpr int RESP_COUNT[] = {5,5,5,5,5,5,5,5,5,5};
 
-alignas(32) static float W1[HSIZE][VSIZE]; // camada 1: HSIZE × VSIZE
+alignas(32) static float W1[HSIZE][VSIZE];
 alignas(32) static float b1[HSIZE];
-alignas(32) static float W2[NINT][HSIZE];  // camada 2: NINT  × HSIZE
+alignas(32) static float W2[NINT][HSIZE];
 alignas(32) static float b2[NINT];
 
 alignas(32) static float g_h   [HSIZE];
@@ -171,7 +171,7 @@ static inline float dot_avx2(const float* __restrict__ a,
     for (int i = 0; i < n; i += 8) {
         __m256 va = _mm256_loadu_ps(a + i);
         __m256 vb = _mm256_loadu_ps(b + i);
-        acc = _mm256_fmadd_ps(va, vb, acc);   // acc += va * vb  (FMA)
+        acc = _mm256_fmadd_ps(va, vb, acc);
     }
     __m128 lo  = _mm256_castps256_ps128(acc);
     __m128 hi  = _mm256_extractf128_ps(acc, 1);

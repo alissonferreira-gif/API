@@ -86,7 +86,7 @@ private:
     static double haversine(double lat1, double lng1,
                              double lat2, double lng2) noexcept
     {
-        constexpr double R = 6371.0; // raio da Terra em km
+        constexpr double R = 6371.0;
         const double dlat = deg2rad(lat2 - lat1);
         const double dlng = deg2rad(lng2 - lng1);
         const double a = std::sin(dlat/2)*std::sin(dlat/2)

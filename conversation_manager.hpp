@@ -12,8 +12,8 @@
 class ConversationManager {
 public:
     struct Config {
-        int_fast32_t max_history  = 20;   // máx de mensagens por sessão
-        int_fast32_t timeout_min  = 30;   // minutos de inatividade → reset
+        int_fast32_t max_history  = 20;
+        int_fast32_t timeout_min  = 30;
         std::string  system_prompt;
     };
 

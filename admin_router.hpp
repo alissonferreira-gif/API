@@ -101,7 +101,7 @@ public:
             }
 
             std::string phone    = (*body)["phone_id"].get<std::string>();
-            std::string tipo     = (*body)["tipo"].get<std::string>();     // "fisica" | "online"
+            std::string tipo     = (*body)["tipo"].get<std::string>();
             double      valor    = (*body)["valor_brl"].get<double>();
             int32_t     campanha = body->value("campanha_id", 0);
 

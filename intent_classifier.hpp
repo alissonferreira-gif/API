@@ -8,22 +8,22 @@
 
 enum class Intent : uint8_t {
     UNKNOWN = 0,
-    DONATE_INTENT,      // "quero doar", "como doar", "ajudar"
-    VOLUNTEER_INTENT,   // "quero ser voluntário", "voluntariar"
-    COLLECTION_POINT,   // "onde fica", "ponto de coleta", "endereço"
-    RANKING,            // "ranking", "meu nível", "pontos"
-    CAMPAIGNS,          // "campanhas", "o que precisa", "urgente"
-    RECEIPT_DONATION,   // "doei", "já doei", "fiz a doação"
-    LOCATION_REQUEST,   // "perto de mim", "mais próximo", enviou localização
-    MISSION,            // "missão", "desafio", "missões da semana"
-    GROUP,              // "grupo", "time solidário", "meu grupo"
-    HELP,               // "ajuda", "oi", "olá", "menu"
-    FRUSTRATION,        // "que merda", "não funciona", "péssimo" → escalar humano
+    DONATE_INTENT,
+    VOLUNTEER_INTENT,
+    COLLECTION_POINT,
+    RANKING,
+    CAMPAIGNS,
+    RECEIPT_DONATION,
+    LOCATION_REQUEST,
+    MISSION,
+    GROUP,
+    HELP,
+    FRUSTRATION,
 };
 
 struct ClassificationResult {
     Intent      intent    = Intent::UNKNOWN;
-    float       confidence = 0.0f;   // 0.0 – 1.0
+    float       confidence = 0.0f;
     std::string matched_keyword;
 };
 
@@ -103,7 +103,7 @@ public:
                    "Aguarde um momento... 🙏";
 
         default:
-            return "";  // deixa o Gemini responder
+            return "";
         }
     }
 
@@ -115,7 +115,7 @@ private:
     struct Rule {
         Intent intent;
         float  base_confidence;
-        const char* keywords[12];  // null-terminated list
+        const char* keywords[12];
     };
 
     static constexpr std::array<Rule, 11> RULES_ = {{

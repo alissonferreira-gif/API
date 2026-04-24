@@ -21,7 +21,7 @@ ChatbotEngine::ChatbotEngine(
     : gemini_(gemini), conv_(conv), db_(db),
       gamification_(db),
       geo_(db),
-      rate_limiter_(20, 60'000)   // 20 msgs/minuto por phone_id
+      rate_limiter_(20, 60'000)
 {}
 
 
@@ -80,7 +80,6 @@ void ChatbotEngine::escalate_to_human(
     db_.log_admin_action("system", "escalate_human",
         std::format("phone={} reason={} msg={}", phone_id, reason, message));
 
-    // TODO: POST para webhook Slack/CRM configurável via env ESCALATION_WEBHOOK
     std::println("[Escalation] {} → humano. Razão: {}", phone_id, reason);
 }
 

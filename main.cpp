@@ -322,7 +322,7 @@ int main(int argc, char* argv[]) {
         SQLiteDatabase db(db_path);
         std::println("[DB] SQLite em: {}", db_path);
 
-        ThreadPool pool;  // hardware_concurrency threads
+        ThreadPool pool;
         std::println("[ThreadPool] {} threads", pool.thread_count());
 
         ChatbotEngine engine(gemini, conv, db);
@@ -343,7 +343,6 @@ int main(int argc, char* argv[]) {
                     wa.send_text(phone, msg);
                 },
                 [](const std::string& subj, const std::string& body) {
-                    // TODO: enviar e-mail/Slack via ADMIN_WEBHOOK env
                     std::println("[Alert] {}: {}", subj, body);
                 }
             );

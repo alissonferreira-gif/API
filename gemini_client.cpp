@@ -6,7 +6,7 @@
 
 #include <sstream>
 #include <stdexcept>
-#include <format>   // C++23
+#include <format>
 
 using json = nlohmann::json;
 
